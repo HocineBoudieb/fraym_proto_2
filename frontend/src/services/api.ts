@@ -1,6 +1,7 @@
 import type { Session, Message, ChatResponse } from '../types';
+import { API_BASE_URL } from '../config';
 
-const API_URL = 'http://localhost:8000';
+const API_URL = API_BASE_URL;
 
 export const autoRegister = async (): Promise<{ apiKey: string; expiresAt: string }> => {
   const response = await fetch(`${API_URL}/auth/auto-register`, {

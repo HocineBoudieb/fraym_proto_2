@@ -4,7 +4,7 @@
 
 // URL de base de l'API selon l'environnement
 export const API_BASE_URL = import.meta.env.PROD 
-  ? import.meta.env.VITE_API_URL || 'https://your-ngrok-url.ngrok.io'
+  ? import.meta.env.VITE_API_URL || 'https://2ca0-37-71-228-214.ngrok-free.app' 
   : 'http://localhost:8000';
 
 // Configuration de l'authentification
