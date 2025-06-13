@@ -2,7 +2,7 @@
 
 @plugin "@tailwindcss/typography";
 
-@config "/Users/shhocs/Desktop/Projet/Fraym/rasa_fraym/frontend/tailwind.config.js";
+@config "../tailwind.config.js";
 
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
