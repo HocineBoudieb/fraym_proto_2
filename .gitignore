@@ -10,7 +10,6 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -168,7 +167,6 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Frontend build outputs
-frontend/dist/
 frontend/dist-ssr/
 frontend/.vite/
 frontend/build/
@@ -268,11 +266,9 @@ out
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 
 # Gatsby files
 .cache/
-public
 
 # Storybook build outputs
 .out
