@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
+    }
+  ],
+  "routes": [
+    { "handle": "filesystem" },       // 1️⃣ Sert d’abord tous les fichiers existants dans /dist
+    { "src": "/.*", "dest": "/index.html" }  // 2️⃣ Puis tout le reste (vos routes SPA) 
+  ]
+}
