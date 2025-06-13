@@ -1,0 +1,25 @@
+{
+  "pre_deployment": [
+    "✅ Tous les outils sont installés",
+    "✅ Fichier .env configuré",
+    "✅ Dépendances installées",
+    "✅ Base de données synchronisée",
+    "✅ Repository Git configuré"
+  ],
+  "api_deployment": [
+    "🔧 Compte ngrok créé et authtoken configuré",
+    "🔧 Variables d'environnement validées",
+    "🔧 Test local de l'API réussi"
+  ],
+  "frontend_deployment": [
+    "🔧 Repository GitHub créé",
+    "🔧 GitHub Pages activé",
+    "🔧 URL de l'API configurée dans le frontend",
+    "🔧 Build frontend réussi"
+  ],
+  "post_deployment": [
+    "🔧 Test de l'API publique",
+    "🔧 Test du frontend déployé",
+    "🔧 Vérification de la communication API ↔ Frontend"
+  ]
+}

@@ -17,13 +17,14 @@ Ce projet utilise [uv](https://docs.astral.sh/uv/) pour la gestion des dépendan
 ### Prérequis
 - Python 3.11+
 - uv installé
+- Node.js 20+ avec pnpm
 - Une clé API OpenAI
 - Un assistant OpenAI déjà configuré
 
 ### Installation des dépendances
 
 ```bash
-# Installer les dépendances
+# Installer les dépendances Python
 uv sync
 
 # Générer le client Prisma
@@ -31,6 +32,11 @@ uv run prisma generate
 
 # Créer la base de données
 uv run prisma db push
+
+# Installer les dépendances frontend
+cd frontend
+pnpm install
+cd ..
 ```
 
 ### Configuration
@@ -43,7 +49,7 @@ cp .env.example .env
 
 Modifiez le fichier `.env` avec vos propres valeurs :
 
-```
+```env
 # OpenAI Configuration
 OPENAI_API_KEY=votre_clé_api_openai
 OPENAI_ASSISTANT_ID=votre_id_assistant
@@ -60,6 +66,37 @@ DATABASE_URL=file:./dev.db
 API_HOST=0.0.0.0
 API_PORT=8000
 ```
+
+## 🚀 Déploiement
+
+### Déploiement Rapide
+
+```bash
+# Déploiement complet (API + Frontend)
+python3 deploy.py
+
+# API seulement (via ngrok)
+python3 deploy.py --api-only
+
+# Frontend seulement (via GitHub Pages)
+python3 deploy.py --frontend-only
+```
+
+### Déploiement Manuel
+
+#### API via ngrok
+```bash
+python3 deploy_ngrok.py
+```
+
+#### Frontend via GitHub Pages
+1. Configurez GitHub Pages dans les settings du repository
+2. Poussez vos changements sur la branche `main`
+3. Le déploiement se fait automatiquement via GitHub Actions
+
+📖 **Guide complet** : Voir [DEPLOYMENT.md](DEPLOYMENT.md)
+
+## 🏃‍♂️ Développement Local
 
 ## Utilisation
 
