@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Rasa Fraym Proxy</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            border: 2px solid #f0f0f0;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 3px solid #4facfe;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .response.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .response.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .chat-container {
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f9f9f9;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 10px;
+            max-width: 80%;
+        }
+
+        .message.user {
+            background: #4facfe;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message.assistant {
+            background: white;
+            border: 1px solid #ddd;
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid #ddd;
+            background: white;
+        }
+
+        .chat-input input {
+            flex: 1;
+            margin-right: 10px;
+            margin-bottom: 0;
+        }
+
+        .sessions-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        .session-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .session-item:hover {
+            background: #f0f0f0;
+        }
+
+        .session-item.active {
+            background: #e3f2fd;
+            border-left: 4px solid #4facfe;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Test API Rasa Fraym Proxy</h1>
+            <p>Interface de test pour l'API proxy OpenAI Assistant</p>
+            <span id="connectionStatus" class="status disconnected">Déconnecté</span>
+        </div>
+
+        <div class="content">
+            <!-- Section Authentification -->
+            <div class="section">
+                <h2>🔐 Authentification</h2>
+                <div class="grid">
+                    <div>
+                        <h3>Créer un utilisateur</h3>
+                        <div class="form-group">
+                            <label for="registerName">Nom :</label>
+                            <input type="text" id="registerName" placeholder="Votre nom">
+                        </div>
+                        <div class="form-group">
+                            <label for="registerEmail">Email :</label>
+                            <input type="email" id="registerEmail" placeholder="votre@email.com">
+                        </div>
+                        <button onclick="registerUser()">Créer un compte</button>
+                        <div id="registerResponse" class="response" style="display: none;"></div>
+                    </div>
+                    
+                    <div>
+                        <h3>Se connecter</h3>
+                        <div class="form-group">
+                            <label for="apiKey">Clé API :</label>
+                            <input type="text" id="apiKey" placeholder="Votre clé API">
+                        </div>
+                        <button onclick="login()">Se connecter</button>
+                        <div id="loginResponse" class="response" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section Sessions -->
+            <div class="section">
+                <h2>💬 Gestion des Sessions</h2>
+                <div class="grid">
+                    <div>
+                        <h3>Créer une session</h3>
+                        <div class="form-group">
+                            <label for="sessionTitle">Titre de la session :</label>
+                            <input type="text" id="sessionTitle" placeholder="Ma nouvelle session">
+                        </div>
+                        <button onclick="createSession()">Créer une session</button>
+                        <div id="sessionResponse" class="response" style="display: none;"></div>
+                    </div>
+                    
+                    <div>
+                        <h3>Mes sessions</h3>
+                        <button onclick="loadSessions()">Charger mes sessions</button>
+                        <div id="sessionsList" class="sessions-list" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section Chat -->
+            <div class="section">
+                <h2>🚀 Chat avec OpenAI</h2>
+                <div class="form-group">
+                    <label>Session active : <span id="activeSession">Aucune</span></label>
+                </div>
+                <div class="chat-container">
+                    <div id="chatMessages" class="chat-messages">
+                        <div class="message assistant">
+                            👋 Bonjour ! Sélectionnez une session pour commencer à chatter.
+                        </div>
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" id="messageInput" placeholder="Tapez votre message..." onkeypress="handleKeyPress(event)">
+                        <button onclick="sendMessage()" id="sendButton" disabled>Envoyer</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section Tests API -->
+            <div class="section">
+                <h2>🔧 Tests API</h2>
+                <button onclick="testHealth()">Test Health</button>
+                <button onclick="testRoot()">Test Root</button>
+                <div id="testResponse" class="response" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let authToken = null;
+        let currentSessionId = null;
+
+        // Vérifier la connexion à l'API
+        async function checkConnection() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    document.getElementById('connectionStatus').textContent = 'Connecté';
+                    document.getElementById('connectionStatus').className = 'status connected';
+                } else {
+                    throw new Error('API non disponible');
+                }
+            } catch (error) {
+                document.getElementById('connectionStatus').textContent = 'Déconnecté';
+                document.getElementById('connectionStatus').className = 'status disconnected';
+            }
+        }
+
+        // Enregistrer un utilisateur
+        async function registerUser() {
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, email })
+                });
+                
+                const data = await response.json();
+                const responseDiv = document.getElementById('registerResponse');
+                
+                if (response.ok) {
+                    responseDiv.className = 'response success';
+                    responseDiv.textContent = `Utilisateur créé !\nClé API: ${data.api_key}\n\nCopiez cette clé et utilisez-la pour vous connecter.`;
+                    document.getElementById('apiKey').value = data.api_key;
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.textContent = `Erreur: ${data.detail || 'Erreur inconnue'}`;
+                }
+                
+                responseDiv.style.display = 'block';
+            } catch (error) {
+                const responseDiv = document.getElementById('registerResponse');
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `Erreur de connexion: ${error.message}`;
+                responseDiv.style.display = 'block';
+            }
+        }
+
+        // Se connecter
+        async function login() {
+            const apiKey = document.getElementById('apiKey').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'X-API-Key': apiKey
+                    }
+                });
+                
+                const data = await response.json();
+                const responseDiv = document.getElementById('loginResponse');
+                
+                if (response.ok) {
+                    authToken = data.access_token;
+                    responseDiv.className = 'response success';
+                    responseDiv.textContent = `Connexion réussie !\nToken: ${data.access_token.substring(0, 20)}...`;
+                    loadSessions();
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.textContent = `Erreur: ${data.detail || 'Erreur inconnue'}`;
+                }
+                
+                responseDiv.style.display = 'block';
+            } catch (error) {
+                const responseDiv = document.getElementById('loginResponse');
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `Erreur de connexion: ${error.message}`;
+                responseDiv.style.display = 'block';
+            }
+        }
+
+        // Créer une session
+        async function createSession() {
+            if (!authToken) {
+                alert('Veuillez vous connecter d\'abord');
+                return;
+            }
+            
+            const title = document.getElementById('sessionTitle').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/sessions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ title })
+                });
+                
+                const data = await response.json();
+                const responseDiv = document.getElementById('sessionResponse');
+                
+                if (response.ok) {
+                    responseDiv.className = 'response success';
+                    responseDiv.textContent = `Session créée !\nID: ${data.id}\nTitre: ${data.title}\nThread OpenAI: ${data.openai_thread_id}`;
+                    loadSessions();
+                    document.getElementById('sessionTitle').value = '';
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.textContent = `Erreur: ${data.detail || 'Erreur inconnue'}`;
+                }
+                
+                responseDiv.style.display = 'block';
+            } catch (error) {
+                const responseDiv = document.getElementById('sessionResponse');
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `Erreur de connexion: ${error.message}`;
+                responseDiv.style.display = 'block';
+            }
+        }
+
+        // Charger les sessions
+        async function loadSessions() {
+            if (!authToken) {
+                alert('Veuillez vous connecter d\'abord');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/sessions`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const sessions = await response.json();
+                const sessionsList = document.getElementById('sessionsList');
+                
+                if (response.ok) {
+                    sessionsList.innerHTML = '';
+                    sessions.forEach(session => {
+                        const sessionDiv = document.createElement('div');
+                        sessionDiv.className = 'session-item';
+                        sessionDiv.innerHTML = `
+                            <strong>${session.title}</strong><br>
+                            <small>ID: ${session.id}</small><br>
+                            <small>Créée: ${new Date(session.created_at).toLocaleString()}</small>
+                        `;
+                        sessionDiv.onclick = () => selectSession(session);
+                        sessionsList.appendChild(sessionDiv);
+                    });
+                    sessionsList.style.display = 'block';
+                } else {
+                    alert(`Erreur lors du chargement des sessions: ${sessions.detail}`);
+                }
+            } catch (error) {
+                alert(`Erreur de connexion: ${error.message}`);
+            }
+        }
+
+        // Sélectionner une session
+        function selectSession(session) {
+            currentSessionId = session.id;
+            document.getElementById('activeSession').textContent = session.title;
+            document.getElementById('sendButton').disabled = false;
+            
+            // Marquer la session comme active
+            document.querySelectorAll('.session-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Charger les messages de la session
+            loadSessionMessages(session.id);
+        }
+
+        // Charger les messages d'une session
+        async function loadSessionMessages(sessionId) {
+            try {
+                const response = await fetch(`${API_BASE}/sessions/${sessionId}/messages`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const messages = await response.json();
+                const chatMessages = document.getElementById('chatMessages');
+                
+                if (response.ok) {
+                    chatMessages.innerHTML = '';
+                    messages.forEach(message => {
+                        addMessageToChat(message.content, message.role);
+                    });
+                    
+                    if (messages.length === 0) {
+                        addMessageToChat('Session vide. Commencez la conversation !', 'assistant');
+                    }
+                } else {
+                    alert(`Erreur lors du chargement des messages: ${messages.detail}`);
+                }
+            } catch (error) {
+                alert(`Erreur de connexion: ${error.message}`);
+            }
+        }
+
+        // Envoyer un message
+        async function sendMessage() {
+            if (!currentSessionId) {
+                alert('Veuillez sélectionner une session');
+                return;
+            }
+            
+            const messageInput = document.getElementById('messageInput');
+            const content = messageInput.value.trim();
+            
+            if (!content) return;
+            
+            // Ajouter le message utilisateur à l'interface
+            addMessageToChat(content, 'user');
+            messageInput.value = '';
+            
+            // Désactiver le bouton d'envoi
+            const sendButton = document.getElementById('sendButton');
+            sendButton.disabled = true;
+            sendButton.textContent = 'Envoi...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/sessions/${currentSessionId}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ content })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Ajouter la réponse de l'assistant
+                    addMessageToChat(data.assistant_response.content, 'assistant');
+                } else {
+                    addMessageToChat(`Erreur: ${data.detail || 'Erreur inconnue'}`, 'assistant');
+                }
+            } catch (error) {
+                addMessageToChat(`Erreur de connexion: ${error.message}`, 'assistant');
+            } finally {
+                // Réactiver le bouton d'envoi
+                sendButton.disabled = false;
+                sendButton.textContent = 'Envoyer';
+            }
+        }
+
+        // Ajouter un message au chat
+        function addMessageToChat(content, role) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            messageDiv.textContent = content;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Gérer la touche Entrée
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Tests API
+        async function testHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                const responseDiv = document.getElementById('testResponse');
+                
+                responseDiv.className = response.ok ? 'response success' : 'response error';
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+                responseDiv.style.display = 'block';
+            } catch (error) {
+                const responseDiv = document.getElementById('testResponse');
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `Erreur: ${error.message}`;
+                responseDiv.style.display = 'block';
+            }
+        }
+
+        async function testRoot() {
+            try {
+                const response = await fetch(`${API_BASE}/`);
+                const data = await response.json();
+                const responseDiv = document.getElementById('testResponse');
+                
+                responseDiv.className = response.ok ? 'response success' : 'response error';
+                responseDiv.textContent = JSON.stringify(data, null, 2);
+                responseDiv.style.display = 'block';
+            } catch (error) {
+                const responseDiv = document.getElementById('testResponse');
+                responseDiv.className = 'response error';
+                responseDiv.textContent = `Erreur: ${error.message}`;
+                responseDiv.style.display = 'block';
+            }
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            checkConnection();
+            setInterval(checkConnection, 30000); // Vérifier la connexion toutes les 30 secondes
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+from openai import AsyncOpenAI
+from typing import List, Dict, Any
+from config import settings
+from prisma import Prisma
+import asyncio
+import re
+
+class OpenAIService:
+    def __init__(self):
+        self.client = AsyncOpenAI(api_key=settings.openai_api_key)
+        self.assistant_id = settings.openai_assistant_id
+    
+    async def create_thread(self) -> str:
+        """Crée un nouveau thread OpenAI"""
+        thread = await self.client.beta.threads.create()
+        return thread.id
+    
+    async def add_message_to_thread(self, thread_id: str, content: str, role: str = "user") -> str:
+        """Ajoute un message à un thread"""
+        message = await self.client.beta.threads.messages.create(
+            thread_id=thread_id,
+            role=role,
+            content=content
+        )
+        return message.id
+    
+    async def run_assistant(self, thread_id: str) -> str:
+        """Lance l'assistant sur un thread et attend la réponse"""
+        run = await self.client.beta.threads.runs.create(
+            thread_id=thread_id,
+            assistant_id=self.assistant_id
+        )
+        
+        # Attendre que le run soit terminé
+        while run.status in ["queued", "in_progress", "cancelling"]:
+            await asyncio.sleep(1)
+            run = await self.client.beta.threads.runs.retrieve(
+                thread_id=thread_id,
+                run_id=run.id
+            )
+        
+        if run.status == "completed":
+            # Récupérer les messages du thread
+            messages = await self.client.beta.threads.messages.list(
+                thread_id=thread_id,
+                order="desc",
+                limit=1
+            )
+            
+            if messages.data:
+                latest_message = messages.data[0]
+                if latest_message.role == "assistant":
+                    # Extraire le contenu texte du message
+                    content = ""
+                    for content_block in latest_message.content:
+                        if content_block.type == "text":
+                            content += content_block.text.value
+                    
+                    # Traiter la réponse pour enlever les backticks et 'json'
+                    processed_content = self._process_response(content)
+                    return processed_content, latest_message.id
+            
+            raise Exception("Aucune réponse de l'assistant trouvée")
+        else:
+            raise Exception(f"Erreur lors de l'exécution de l'assistant: {run.status}")
+    
+    async def get_thread_messages(self, thread_id: str, limit: int = 20) -> List[Dict[str, Any]]:
+        """Récupère les messages d'un thread"""
+        messages = await self.client.beta.threads.messages.list(
+            thread_id=thread_id,
+            order="asc",
+            limit=limit
+        )
+        
+        formatted_messages = []
+        for message in messages.data:
+            content = ""
+            for content_block in message.content:
+                if content_block.type == "text":
+                    content += content_block.text.value
+            
+            formatted_messages.append({
+                "id": message.id,
+                "role": message.role,
+                "content": content,
+                "created_at": message.created_at
+            })
+        
+        return formatted_messages
+    
+    def _process_response(self, content: str) -> str:
+        """Traite la réponse pour enlever les backticks et 'json' du début et s'assurer que le JSON est valide"""
+        import json
+        
+        # Enlever les backticks de début et de fin avec 'json'
+        # Pattern pour matcher ```json au début et ``` à la fin
+        pattern = r'^```json\s*\n?(.*?)\n?```$'
+        match = re.match(pattern, content.strip(), re.DOTALL | re.MULTILINE)
+        
+        if match:
+            # Extraire le contenu sans les backticks et 'json'
+            json_content = match.group(1).strip()
+        else:
+            # Essayer de détecter d'autres patterns de backticks
+            # Pattern pour ```json sans fermeture ou avec variations
+            patterns = [
+                r'^```json\s*\n?(.*?)$',  # ```json sans fermeture
+                r'^```\s*\n?(.*?)\n?```$',  # ``` sans json
+                r'^```.*?\n(.*?)\n?```$',  # ```quelquechose
+            ]
+            
+            json_content = content.strip()
+            for pattern in patterns:
+                match = re.match(pattern, json_content, re.DOTALL | re.MULTILINE)
+                if match:
+                    json_content = match.group(1).strip()
+                    break
+        
+        # Nettoyer le contenu JSON
+        json_content = self._clean_json_content(json_content)
+        
+        # Valider que le JSON est parsable
+        try:
+            json.loads(json_content)
+            return json_content
+        except json.JSONDecodeError as e:
+            # Si le JSON n'est pas valide, essayer de le corriger
+            corrected_json = self._fix_json_format(json_content)
+            try:
+                json.loads(corrected_json)
+                return corrected_json
+            except json.JSONDecodeError:
+                # Si impossible à corriger, retourner le contenu original
+                return content
+    
+    def _clean_json_content(self, content: str) -> str:
+        """Nettoie le contenu JSON des caractères indésirables"""
+        # Enlever les backticks restants
+        content = re.sub(r'`+', '', content)
+        
+        # Enlever les marqueurs markdown restants
+        content = re.sub(r'^(json|JSON)\s*\n?', '', content, flags=re.MULTILINE)
+        
+        # Enlever les espaces en début et fin
+        content = content.strip()
+        
+        return content
+    
+    def _fix_json_format(self, content: str) -> str:
+        """Essaie de corriger les erreurs communes de formatage JSON"""
+        # Enlever les virgules en fin d'objet ou de tableau
+        content = re.sub(r',\s*}', '}', content)
+        content = re.sub(r',\s*]', ']', content)
+        
+        # Corriger les guillemets simples en guillemets doubles
+        content = re.sub(r"'([^']*)':", r'"\1":', content)
+        content = re.sub(r":\s*'([^']*)'", r': "\1"', content)
+        
+        # Enlever les commentaires
+        content = re.sub(r'//.*?\n', '\n', content)
+        content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+        
+        return content
+
+# Instance globale du service
+openai_service = OpenAIService()
