@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import type { Message, ChatResponse, AuthData, ComponentTree } from '../types';
+import type { ChatResponse, ComponentTree } from '../types';
 import { createSession, sendMessage, autoRegister } from '../services/api';
 import { saveAuthData, getAuthData } from '../services/storage';
-import { renderComponent } from '../services/componentRenderer';
 import { Container } from './Container';
 import { Card } from './Card';
 import { Text } from './Text';
@@ -455,7 +454,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
         ) : renderedComponents ? (
           <div className="w-full h-full flex justify-center items-start py-8">
             <div className="max-w-6xl w-full px-4 space-y-6">
-              {console.log('🎨 Rendu des composants:', renderedComponents)}
               <ComponentFactory componentData={renderedComponents} />
             </div>
           </div>

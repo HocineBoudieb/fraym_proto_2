@@ -70,17 +70,24 @@ export const renderComponent = (componentTree: ComponentTree): React.ReactNode =
   }
   
   // C'est un composant unique
-  const { type, props } = componentTree;
-  const Component = componentMap[type];
+  const { type, component, props } = componentTree;
+  const componentType = type || component;
+  
+  if (!componentType) {
+    console.warn('Type de composant manquant:', componentTree);
+    return null;
+  }
+  
+  const Component = componentMap[componentType as keyof typeof componentMap];
   
   if (!Component) {
-    console.warn(`Composant non trouvé: ${type}`);
+    console.warn(`Composant non trouvé: ${componentType}`);
     return null;
   }
   
   // Traiter les enfants récursivement si nécessaire
-  const processedProps = { ...props };
-  if (props.children) {
+  const processedProps = { ...(props || {}) };
+  if (props?.children) {
     processedProps.children = renderComponent(props.children) as any;
   }
   

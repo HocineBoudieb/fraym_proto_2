@@ -42,8 +42,13 @@ export interface ComponentProps {
 }
 
 export interface Component {
-  type: ComponentType;
-  props: ComponentProps;
+  type?: ComponentType;
+  component?: ComponentType;
+  props?: ComponentProps;
+  components?: Component[];
+  id?: string;
+  children?: ComponentTree | string;
+  [key: string]: any;
 }
 
 export type ComponentTree = Component | Component[] | string;
