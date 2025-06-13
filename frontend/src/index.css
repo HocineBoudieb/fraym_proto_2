@@ -35,6 +35,42 @@ body {
     @apply w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500;
   }
   
+  /* Optimisations pour mobile */
+  @media (max-width: 640px) {
+    .product-card-mobile {
+      @apply text-xs leading-tight;
+    }
+    
+    .product-grid-mobile {
+      @apply gap-2 px-2;
+    }
+    
+    .product-image-mobile {
+      @apply h-28;
+    }
+    
+    .product-text-mobile {
+      @apply text-xs p-2;
+    }
+    
+    /* Optimisations générales pour mobile */
+    .mobile-compact {
+      @apply text-xs leading-tight p-2;
+    }
+    
+    .mobile-button {
+      @apply text-xs py-1 px-2;
+    }
+    
+    .mobile-heading {
+      @apply text-lg leading-tight;
+    }
+    
+    .mobile-spacing {
+      @apply space-y-2 gap-2;
+    }
+  }
+  
   /* Glassmorphism effects */
   .glass {
     backdrop-filter: blur(16px);

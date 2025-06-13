@@ -49,12 +49,12 @@ export const Button: React.FC<ButtonProps> = ({
     },
   };
 
-  // Mapping des tailles aux classes Tailwind
+  // Mapping des tailles aux classes Tailwind responsive
   const sizeClasses = {
-    sm: 'px-2 py-1 text-sm',
-    md: 'px-4 py-2',
-    lg: 'px-6 py-3 text-lg',
-    xl: 'px-8 py-4 text-xl',
+    sm: 'px-2 py-1 text-xs sm:text-sm',
+    md: 'px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base',
+    lg: 'px-4 sm:px-6 py-2 sm:py-3 text-base sm:text-lg',
+    xl: 'px-6 sm:px-8 py-3 sm:py-4 text-lg sm:text-xl',
   };
 
   const baseClasses = 'font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';

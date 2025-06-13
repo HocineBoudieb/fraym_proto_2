@@ -32,7 +32,7 @@ export const Hero: React.FC<HeroProps> = ({
 
   return (
     <div
-      className={`relative py-20 px-4 text-center ${className}`}
+      className={`relative py-12 sm:py-16 md:py-20 px-2 sm:px-4 text-center ${className}`}
       style={backgroundStyle}
       {...rest}
     >
@@ -40,11 +40,11 @@ export const Hero: React.FC<HeroProps> = ({
         <div className="absolute inset-0 bg-black bg-opacity-40"></div>
       )}
       <div className="relative z-10 max-w-4xl mx-auto">
-        <Heading level={1} className="mb-6">
+        <Heading level={1} className="mb-4 sm:mb-6">
           {title}
         </Heading>
         {subtitle && (
-          <Text size="xl" className="mb-8 max-w-2xl mx-auto">
+          <Text size="lg" className="mb-6 sm:mb-8 max-w-2xl mx-auto text-sm sm:text-base md:text-lg">
             {subtitle}
           </Text>
         )}

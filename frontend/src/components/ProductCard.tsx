@@ -30,24 +30,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <Image
         src={image}
         alt={title}
-        className="w-full h-40 object-cover"
+        className="w-full h-28 sm:h-32 md:h-40 object-cover"
       />
-      <div className="p-3">
-        <Text size="md" weight="semibold" className="mb-1">
+      <div className="p-2 sm:p-3">
+        <Text size="sm" weight="semibold" className="mb-1 text-xs sm:text-sm md:text-base leading-tight">
           {title}
         </Text>
-        <Text size="lg" weight="bold" color="blue-600" className="mb-2">
+        <Text size="md" weight="bold" color="blue-600" className="mb-2 text-sm sm:text-base md:text-lg">
           {price}
         </Text>
         {description && (
-          <Text size="xs" color="gray-600" className="mb-3">
+          <Text size="xs" color="gray-600" className="mb-2 sm:mb-3 text-xs leading-tight">
             {description}
           </Text>
         )}
         <Button
           color="blue"
           size="sm"
-          className="w-full"
+          className="w-full text-xs sm:text-sm py-1 sm:py-2"
           onClick={onButtonClick}
         >
           {buttonText}

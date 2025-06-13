@@ -17,14 +17,14 @@ export const Heading: React.FC<HeadingProps> = ({
   align = 'center',
   ...rest
 }) => {
-  // Mapping des niveaux aux tailles Tailwind
+  // Mapping des niveaux aux tailles Tailwind responsive
   const sizeClasses = {
-    1: 'text-4xl font-bold',
-    2: 'text-3xl font-bold',
-    3: 'text-2xl font-semibold',
-    4: 'text-xl font-semibold',
-    5: 'text-lg font-medium',
-    6: 'text-base font-medium',
+    1: 'text-2xl sm:text-3xl md:text-4xl font-bold',
+    2: 'text-xl sm:text-2xl md:text-3xl font-bold',
+    3: 'text-lg sm:text-xl md:text-2xl font-semibold',
+    4: 'text-base sm:text-lg md:text-xl font-semibold',
+    5: 'text-sm sm:text-base md:text-lg font-medium',
+    6: 'text-xs sm:text-sm md:text-base font-medium',
   };
 
   // Mapping des alignements aux classes Tailwind

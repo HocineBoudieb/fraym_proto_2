@@ -61,8 +61,8 @@ export const ZaraProductGrid: React.FC<ZaraProductGridProps> = ({
   ];
 
   return (
-    <Container maxWidth="6xl" className={`py-8 ${className}`} {...rest}>
-      <Grid cols={2} gap={8} responsive={{ sm: 3, md: 4, lg: 5 }}>
+    <Container maxWidth="6xl" className={`py-4 sm:py-6 md:py-8 px-2 sm:px-4 ${className}`} {...rest}>
+      <Grid cols={2} gap={3} responsive={{ sm: 3, md: 4, lg: 5 }}>
         {products.map((product) => (
           <ZaraProductCard
             key={product.id}
