@@ -4,6 +4,8 @@ from config import settings
 from prisma import Prisma
 import asyncio
 import re
+import json
+from openai import AsyncOpenAI
 
 class OpenAIService:
     def __init__(self):
@@ -24,7 +26,7 @@ class OpenAIService:
         )
         return message.id
     
-    async def run_assistant(self, thread_id: str) -> str:
+    async def run_assistant(self, thread_id: str, user_id: str = None) -> str:
         """Lance l'assistant sur un thread et attend la réponse"""
         run = await self.client.beta.threads.runs.create(
             thread_id=thread_id,
@@ -58,6 +60,11 @@ class OpenAIService:
                     
                     # Traiter la réponse pour enlever les backticks et 'json'
                     processed_content = self._process_response(content)
+                    
+                    # Traiter le useState si présent et user_id fourni
+                    if user_id:
+                        processed_content, cart_updated = await self._handle_use_state(processed_content, user_id)
+                    
                     return processed_content, latest_message.id
             
             raise Exception("Aucune réponse de l'assistant trouvée")
@@ -161,6 +168,108 @@ class OpenAIService:
         content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
         
         return content
+    
+    async def _handle_use_state(self, content: str, user_id: str) -> tuple[str, bool]:
+        """Traite le useState dans la réponse et met à jour le cart si nécessaire"""
+        cart_updated = False
+        
+        try:
+            # Parser le JSON de la réponse
+            response_data = json.loads(content)
+            
+            # Vérifier s'il y a un useState avec un cart
+            if "useState" in response_data and "cart" in response_data["useState"]:
+                cart_items = response_data["useState"]["cart"]
+                
+                # Mettre à jour le cart dans la base de données
+                cart_updated = await self._update_user_cart(user_id, cart_items)
+                
+                # Supprimer le cart du useState et ajouter cart_updated
+                del response_data["useState"]["cart"]
+                response_data["cart_updated"] = cart_updated
+                
+                # Retourner le JSON modifié
+                return json.dumps(response_data), cart_updated
+                
+        except (json.JSONDecodeError, KeyError) as e:
+            # Si le parsing échoue ou si les clés n'existent pas, on ignore silencieusement
+            pass
+        
+        return content, cart_updated
+    
+    async def _update_user_cart(self, user_id: str, cart_items: List[Dict[str, Any]]) -> bool:
+        """Met à jour le cart de l'utilisateur dans la base de données avec synchronisation intelligente"""
+        prisma = Prisma()
+        await prisma.connect()
+        cart_updated = False
+        
+        try:
+            # Récupérer les items existants du cart
+            existing_items = await prisma.cartitem.find_many(
+                where={"userId": user_id}
+            )
+            
+            # Créer des dictionnaires pour faciliter la comparaison
+            existing_products = {item.productId: item for item in existing_items}
+            received_products = {item.get("productId", ""): item for item in cart_items}
+            
+            # Supprimer les items qui ne sont plus dans le cart reçu
+            items_to_delete = []
+            for product_id, existing_item in existing_products.items():
+                if product_id not in received_products:
+                    items_to_delete.append(existing_item.id)
+            
+            if items_to_delete:
+                await prisma.cartitem.delete_many(
+                    where={"id": {"in": items_to_delete}}
+                )
+                cart_updated = True
+            
+            # Mettre à jour ou créer les items du cart reçu
+            for item in cart_items:
+                product_id = item.get("productId", "")
+                
+                item_data = {
+                    "productName": item.get("productName", ""),
+                    "quantity": item.get("quantity", 1),
+                    "unitPrice": float(item.get("unitPrice", 0)),
+                    "totalPrice": float(item.get("totalPrice", 0))
+                }
+                
+                if product_id in existing_products:
+                    # Mettre à jour l'item existant
+                    existing_item = existing_products[product_id]
+                    # Vérifier si une mise à jour est nécessaire
+                    needs_update = (
+                        existing_item.productName != item_data["productName"] or
+                        existing_item.quantity != item_data["quantity"] or
+                        existing_item.unitPrice != item_data["unitPrice"] or
+                        existing_item.totalPrice != item_data["totalPrice"]
+                    )
+                    
+                    if needs_update:
+                        await prisma.cartitem.update(
+                            where={"id": existing_item.id},
+                            data=item_data
+                        )
+                        cart_updated = True
+                else:
+                    # Créer un nouvel item
+                    await prisma.cartitem.create(
+                        data={
+                            "userId": user_id,
+                            "productId": product_id,
+                            **item_data
+                        }
+                    )
+                    cart_updated = True
+                
+        except Exception as e:
+            print(f"Erreur lors de la mise à jour du cart: {e}")
+        finally:
+            await prisma.disconnect()
+        
+        return cart_updated
 
 # Instance globale du service
 openai_service = OpenAIService()

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import type { ChatResponse, ComponentTree } from '../types';
-import { createSession, sendMessage, autoRegister } from '../services/api';
+import type { ChatResponse, ComponentTree, Cart as CartType } from '../types';
+import { createSession, sendMessage, autoRegister, getCart } from '../services/api';
 import { saveAuthData, getAuthData } from '../services/storage';
 import { Container } from './Container';
 import { Card } from './Card';
@@ -25,6 +25,8 @@ import { Header } from './Header';
 import { Footer } from './Footer';
 import { Sidebar } from './Sidebar';
 import { Welcome } from './Welcome';
+import { Cart } from './Cart';
+import { CartIcon } from './CartIcon';
 
 interface ChatAppProps {
   className?: string;
@@ -204,6 +206,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
   const [renderedComponents, setRenderedComponents] = useState<ComponentTree | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentApiKey, setCurrentApiKey] = useState<string | null>(null);
+  const [cart, setCart] = useState<CartType>({ items: [], totalItems: 0, totalPrice: 0 });
+  const [showCart, setShowCart] = useState(false);
 
   // Charger les données d'authentification au démarrage
   useEffect(() => {
@@ -247,6 +251,44 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
     loadAuthData();
   }, []);
   
+  // Fonction pour récupérer le cart
+  const fetchCart = async () => {
+    if (!currentApiKey) {
+      console.log('🛒 Pas d\'API key pour récupérer le cart');
+      return;
+    }
+    
+    console.log('🛒 Début de l\'appel API pour récupérer le cart avec API key:', currentApiKey);
+    
+    try {
+      const cartData = await getCart(currentApiKey);
+      console.log('🛒 Données brutes reçues du serveur:', JSON.stringify(cartData, null, 2));
+      console.log('🛒 Type de cartData:', typeof cartData);
+      console.log('🛒 cartData.items:', cartData?.items);
+      console.log('🛒 Nombre d\'items:', cartData?.items?.length);
+      
+      if (cartData?.items) {
+        cartData.items.forEach((item, index) => {
+          console.log(`🛒 Item ${index}:`, {
+            id: item.id,
+            productName: item.productName,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: item.totalPrice,
+            unitPriceType: typeof item.unitPrice,
+            totalPriceType: typeof item.totalPrice
+          });
+        });
+      }
+      
+      setCart(cartData);
+      console.log('🛒 Cart mis à jour dans le state');
+    } catch (error) {
+      console.error('🛒 Erreur lors de la récupération du cart:', error);
+      console.error('🛒 Stack trace:', error.stack);
+    }
+  };
+
   // Fonction pour créer une nouvelle session
   const createNewSession = async (apiKey: string) => {
     try {
@@ -315,12 +357,20 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
       
       // Vérifier si les composants sont dans response.components directement
       let componentsToRender = response.components;
+      let cartUpdated = false;
       
       // Si pas de composants directs, vérifier si c'est dans une structure avec template
       if (!componentsToRender && response.assistant_response?.content) {
         try {
           const parsedContent = JSON.parse(response.assistant_response.content);
           console.log('📋 Contenu parsé:', parsedContent);
+          
+          // Vérifier si le cart a été mis à jour
+          if (parsedContent.cart_updated === true) {
+            cartUpdated = true;
+            console.log('🛒 Cart mis à jour détecté!');
+          }
+          
           if (parsedContent.components) {
             componentsToRender = parsedContent.components;
             console.log('🔄 Composants trouvés dans le contenu parsé:', componentsToRender);
@@ -328,6 +378,11 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
         } catch (e) {
           console.log('⚠️ Impossible de parser le contenu comme JSON:', e);
         }
+      }
+      
+      // Récupérer le cart si il a été mis à jour
+      if (cartUpdated) {
+        await fetchCart();
       }
       
       // Mettre à jour les composants si fournis
@@ -513,6 +568,11 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
             </Button>
+            {/* Icône du cart */}
+            <CartIcon
+              itemCount={cart.totalItems}
+              onClick={() => setShowCart(true)}
+            />
             {/* Bouton Nouvelle session - Version icône */}
             <Button
               onClick={() => handleNewSession()}
@@ -544,6 +604,14 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
           )}
         </Container>
       </div>
+      
+      {/* Modal du cart */}
+      {showCart && (
+        <Cart
+          cart={cart}
+          onClose={() => setShowCart(false)}
+        />
+      )}
     </div>
   );
 };

@@ -2,7 +2,7 @@ import { openDB } from 'idb';
 import type { AuthData } from '../types';
 
 const DB_NAME = 'fraym-chat';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const AUTH_STORE = 'auth';
 
 const initDB = async () => {

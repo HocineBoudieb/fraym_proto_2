@@ -47,6 +47,32 @@ class ErrorResponse(BaseModel):
     error: str
     detail: Optional[str] = None
 
+# Cart Models
+class CartItemCreate(BaseModel):
+    product_id: str
+    product_name: str
+    quantity: int
+    unit_price: float
+    total_price: float
+
+class CartItemResponse(BaseModel):
+    id: str
+    product_id: str
+    product_name: str
+    quantity: int
+    unit_price: float
+    total_price: float
+    created_at: datetime
+    updated_at: datetime
+
+class CartResponse(BaseModel):
+    items: List[CartItemResponse]
+    total_amount: float
+    total_items: int
+
+class CartUpdateRequest(BaseModel):
+    cart: List[CartItemCreate]
+
 # Health Check
 class HealthResponse(BaseModel):
     status: str

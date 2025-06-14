@@ -1,5 +1,5 @@
-import type { Session, Message, ChatResponse } from '../types';
 import { API_BASE_URL } from '../config';
+import type { Session, Message, ChatResponse, Cart } from '../types';
 
 const API_URL = API_BASE_URL;
 
@@ -72,4 +72,43 @@ export const getMessages = async (sessionId: string, apiKey: string): Promise<Me
   }
 
   return response.json();
+};
+
+export const getCart = async (apiKey: string): Promise<Cart> => {
+  const response = await fetch(`${API_URL}/cart`, {
+    headers: {
+      'Authorization': `Bearer ${apiKey}`
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Erreur lors de la récupération du cart: ${response.statusText}`);
+  }
+
+  const rawData = await response.json();
+  console.log('🛒 Données brutes du serveur:', rawData);
+  
+  // Transformer les données du serveur (snake_case) vers le format frontend (camelCase)
+  const items = Array.isArray(rawData) ? rawData : (rawData.items || []);
+  
+  const transformedData: Cart = {
+    items: items.map((item: any) => {
+      console.log('🛒 Item brut avant transformation:', item);
+      const transformedItem = {
+        id: item.id,
+        productId: item.product_id,
+        productName: item.product_name,
+        quantity: item.quantity,
+        unitPrice: item.unit_price,
+        totalPrice: item.total_price
+      };
+      console.log('🛒 Item transformé:', transformedItem);
+      return transformedItem;
+    }),
+    totalItems: rawData.total_items || items.length || 0,
+    totalPrice: rawData.total_amount || items.reduce((sum: number, item: any) => sum + (item.total_price || 0), 0) || 0
+  };
+  
+  console.log('🛒 Données transformées:', transformedData);
+  return transformedData;
 };

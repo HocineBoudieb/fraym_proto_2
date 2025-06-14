@@ -11,7 +11,8 @@ load_dotenv()
 from config import settings
 from models import (
     UserCreate, UserResponse, ApiKeyResponse, SessionCreate, SessionResponse,
-    MessageCreate, MessageResponse, ChatResponse, ErrorResponse, HealthResponse
+    MessageCreate, MessageResponse, ChatResponse, ErrorResponse, HealthResponse,
+    CartItemCreate, CartItemResponse, CartResponse, CartUpdateRequest
 )
 from auth import generate_api_key, create_access_token, get_current_user, verify_api_key
 from openai_service import openai_service
@@ -281,7 +282,8 @@ async def chat(
         
         # Exécuter l'assistant et récupérer la réponse
         assistant_response, assistant_message_id = await openai_service.run_assistant(
-            session.openaiThreadId
+            session.openaiThreadId,
+            current_user.id
         )
         
         # Sauvegarder la réponse de l'assistant
@@ -317,6 +319,113 @@ async def chat(
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur lors du chat: {str(e)}")
+    finally:
+        await prisma.disconnect()
+
+# Routes de gestion du cart
+@app.get("/cart", response_model=CartResponse)
+async def get_user_cart(
+    api_key: str = Header(..., alias="Authorization")
+):
+    """Récupère le cart de l'utilisateur"""
+    # Extraire la clé API du header Authorization
+    if not api_key.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Format d'autorisation invalide")
+    
+    actual_api_key = api_key.replace("Bearer ", "")
+    current_user = await verify_api_key(actual_api_key)
+    
+    prisma = Prisma()
+    await prisma.connect()
+    try:
+        cart_items = await prisma.cartitem.find_many(
+            where={"userId": current_user.id},
+            order={"createdAt": "asc"}
+        )
+        
+        # Calculer les totaux
+        total_amount = sum(item.totalPrice for item in cart_items)
+        total_items = sum(item.quantity for item in cart_items)
+        
+        return CartResponse(
+            items=[
+                CartItemResponse(
+                    id=item.id,
+                    product_id=item.productId,
+                    product_name=item.productName,
+                    quantity=item.quantity,
+                    unit_price=item.unitPrice,
+                    total_price=item.totalPrice,
+                    created_at=item.createdAt,
+                    updated_at=item.updatedAt
+                )
+                for item in cart_items
+            ],
+            total_amount=total_amount,
+            total_items=total_items
+        )
+    finally:
+        await prisma.disconnect()
+
+@app.put("/cart", response_model=CartResponse)
+async def update_user_cart(
+    cart_data: CartUpdateRequest,
+    api_key: str = Header(..., alias="Authorization")
+):
+    """Met à jour le cart de l'utilisateur"""
+    # Extraire la clé API du header Authorization
+    if not api_key.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Format d'autorisation invalide")
+    
+    actual_api_key = api_key.replace("Bearer ", "")
+    current_user = await verify_api_key(actual_api_key)
+    
+    prisma = Prisma()
+    await prisma.connect()
+    try:
+        # Supprimer tous les items existants du cart
+        await prisma.cartitem.delete_many(
+            where={"userId": current_user.id}
+        )
+        
+        # Ajouter les nouveaux items
+        created_items = []
+        for item in cart_data.cart:
+            created_item = await prisma.cartitem.create(
+                data={
+                    "userId": current_user.id,
+                    "productId": item.product_id,
+                    "productName": item.product_name,
+                    "quantity": item.quantity,
+                    "unitPrice": item.unit_price,
+                    "totalPrice": item.total_price
+                }
+            )
+            created_items.append(created_item)
+        
+        # Calculer les totaux
+        total_amount = sum(item.total_price for item in cart_data.cart)
+        total_items = sum(item.quantity for item in cart_data.cart)
+        
+        return CartResponse(
+            items=[
+                CartItemResponse(
+                    id=item.id,
+                    product_id=item.productId,
+                    product_name=item.productName,
+                    quantity=item.quantity,
+                    unit_price=item.unitPrice,
+                    total_price=item.totalPrice,
+                    created_at=item.createdAt,
+                    updated_at=item.updatedAt
+                )
+                for item in created_items
+            ],
+            total_amount=total_amount,
+            total_items=total_items
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la mise à jour du cart: {str(e)}")
     finally:
         await prisma.disconnect()
 

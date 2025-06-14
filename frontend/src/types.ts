@@ -59,3 +59,19 @@ export interface AuthData {
   currentSessionId?: string;
   expiresAt?: string;
 }
+
+// Types pour le cart
+export interface CartItem {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+export interface Cart {
+  items: CartItem[];
+  totalItems: number;
+  totalPrice: number;
+}
