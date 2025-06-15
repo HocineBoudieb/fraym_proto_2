@@ -58,6 +58,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     'limited': { text: 'Stock limité', color: 'text-orange-600', bgColor: 'bg-orange-100' }
   };
 
+  const currentAvailability = availabilityConfig[availability] || availabilityConfig['in-stock'];
+
   const renderStars = (rating: number) => {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
@@ -76,11 +78,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   };
 
   return (
-    <Card className={`max-w-4xl mx-auto ${className}`} padding="2 sm:4" {...rest}>
-      <Grid className="grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+    <div className={`max-w-4xl mx-auto p-2 sm:p-4 lg:p-6 ${className}`} {...rest}>
+      <div className="flex flex-col lg:grid lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-8">
         {/* Section Images */}
-        <div className="space-y-2 sm:space-y-3">
-          <div className="aspect-square overflow-hidden rounded-lg bg-gray-100">
+        <div className="order-1 lg:order-1">
+          <div className="aspect-square overflow-hidden rounded-xl sm:rounded-2xl mb-2 sm:mb-3">
             <Image
               src={selectedImage}
               alt={title}
@@ -89,18 +91,20 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           </div>
           
           {allImages.length > 1 && (
-            <div className="flex space-x-1 sm:space-x-2 overflow-x-auto">
+            <div className="flex space-x-1.5 sm:space-x-2 lg:space-x-3 overflow-x-auto pb-1">
               {allImages.map((img, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImage(img)}
-                  className={`flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                    selectedImage === img ? 'border-blue-500' : 'border-gray-200 hover:border-gray-300'
+                  className={`flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-lg sm:rounded-xl overflow-hidden transition-all duration-200 ${
+                    selectedImage === img 
+                      ? 'ring-1 sm:ring-2 ring-blue-500 ring-offset-1 sm:ring-offset-2 scale-105' 
+                      : 'hover:scale-105 opacity-70 hover:opacity-100'
                   }`}
                 >
                   <Image
                     src={img}
-                    alt={`${title} - Image ${index + 1}`}
+                    alt={`${title} ${index + 1}`}
                     className="w-full h-full object-cover"
                   />
                 </button>
@@ -110,55 +114,55 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         </div>
 
         {/* Section Informations */}
-        <div className="space-y-3 sm:space-y-4">
+        <div className="order-2 lg:order-2 space-y-2 sm:space-y-3 lg:space-y-4">
           {/* En-tête produit */}
-          <div className="space-y-1">
+          <div className="space-y-0.5 sm:space-y-1">
             {category && (
-              <Text size="sm" color="gray-600" className="uppercase tracking-wide">
+              <Text size="xs sm:sm" color="gray-600" className="uppercase tracking-wide">
                 {category}
               </Text>
             )}
-            <Text size="2xl" weight="bold" className="leading-tight">
+            <Text size="lg sm:xl lg:2xl" weight="bold" className="leading-tight">
               {title}
             </Text>
             {brand && (
-              <Text size="md" color="gray-700">
+              <Text size="sm" color="gray-700">
                 Marque: {brand}
               </Text>
             )}
           </div>
 
           {/* Prix et disponibilité */}
-          <div className="space-y-2">
-            <Flex className="items-center space-x-2 sm:space-x-3">
-              <Text size="xl sm:2xl" weight="bold" color="blue-600">
+          <div className="space-y-1.5 sm:space-y-2">
+            <Flex className="items-center space-x-2">
+              <Text size="lg sm:xl lg:2xl" weight="bold" color="blue-600">
                 {price}
               </Text>
               {originalPrice && (
-                <Text size="md sm:lg" color="gray-500" className="line-through">
+                <Text size="sm sm:md lg:lg" color="gray-500" className="line-through">
                   {originalPrice}
                 </Text>
               )}
             </Flex>
             
-            <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-              availabilityConfig[availability].color
-            } ${availabilityConfig[availability].bgColor}`}>
-              {availabilityConfig[availability].text}
+            <div className={`inline-flex items-center px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm font-medium ${
+              currentAvailability.color
+            } ${currentAvailability.bgColor}`}>
+              {currentAvailability.text}
             </div>
           </div>
 
           {/* Évaluation */}
           {rating && (
-            <Flex className="items-center space-x-2">
+            <Flex className="items-center space-x-1.5 sm:space-x-2">
               <div className="flex">
                 {renderStars(rating)}
               </div>
-              <Text size="sm" color="gray-600">
+              <Text size="xs sm:sm" color="gray-600">
                 {rating}/5
               </Text>
               {reviewCount && (
-                <Text size="sm" color="gray-500">
+                <Text size="xs sm:sm" color="gray-500">
                   ({reviewCount} avis)
                 </Text>
               )}
@@ -166,8 +170,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           )}
 
           {/* Description */}
-          <div className="space-y-1">
-            <Text size="sm sm:md" weight="semibold">
+          <div className="space-y-0.5 sm:space-y-1">
+            <Text size="sm" weight="semibold">
               Description
             </Text>
             <Text size="xs sm:sm" color="gray-700" className="leading-relaxed">
@@ -177,14 +181,14 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
           {/* Caractéristiques */}
           {features.length > 0 && (
-            <div className="space-y-1">
-              <Text size="sm sm:md" weight="semibold">
+            <div className="space-y-0.5 sm:space-y-1">
+              <Text size="sm" weight="semibold">
                 Caractéristiques
               </Text>
               <ul className="space-y-0.5">
                 {features.map((feature, index) => (
-                  <li key={index} className="flex items-start space-x-1 sm:space-x-2">
-                    <span className="text-green-500 mt-0.5 text-xs sm:text-sm">✓</span>
+                  <li key={index} className="flex items-start space-x-1">
+                    <span className="text-green-500 mt-0.5 text-xs">✓</span>
                     <Text size="xs" color="gray-700">
                       {feature}
                     </Text>
@@ -196,11 +200,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
           {/* Spécifications */}
           {Object.keys(specifications).length > 0 && (
-            <div className="space-y-1">
-              <Text size="sm sm:md" weight="semibold">
+            <div className="space-y-0.5 sm:space-y-1">
+              <Text size="sm" weight="semibold">
                 Spécifications
               </Text>
-              <div className="bg-gray-50 rounded-lg p-2 sm:p-3 space-y-1">
+              <div className="bg-gray-50 rounded-lg p-2 space-y-0.5 sm:space-y-1">
                 {Object.entries(specifications).map(([key, value]) => (
                   <Flex key={key} className="justify-between items-start">
                     <Text size="xs" weight="medium" color="gray-600" className="flex-shrink-0">
@@ -223,12 +227,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           )}
 
           {/* Boutons d'action */}
-          <div className="space-y-2 pt-2 sm:pt-3">
-            <Flex className="space-x-1 sm:space-x-2">
+          <div className="space-y-2 sm:space-y-3 pt-2 sm:pt-4">
+            <Flex className="space-x-2 sm:space-x-3">
               <Button
                 color="blue"
                 size="sm sm:md"
-                className="flex-1 text-xs sm:text-sm"
+                className="flex-1 text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl py-2 sm:py-3 hover:shadow-lg transition-all duration-200"
                 onClick={onAddToCart}
                 disabled={availability === 'out-of-stock'}
               >
@@ -239,7 +243,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 color="gray"
                 variant="outline"
                 size="sm sm:md"
-                className="px-2 sm:px-3"
+                className="px-3 sm:px-4 rounded-lg sm:rounded-xl hover:shadow-md transition-all duration-200"
                 onClick={onWishlist}
               >
                 ♡
@@ -250,7 +254,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               <Button
                 color="green"
                 size="sm sm:md"
-                className="w-full text-xs sm:text-sm"
+                className="w-full text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl py-2 sm:py-3 hover:shadow-lg transition-all duration-200"
                 onClick={onBuyNow}
               >
                 <span className="hidden sm:inline">Acheter maintenant</span>
@@ -259,7 +263,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             )}
           </div>
         </div>
-      </Grid>
-    </Card>
+      </div>
+    </div>
   );
 };
