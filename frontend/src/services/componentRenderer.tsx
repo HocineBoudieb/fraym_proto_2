@@ -10,6 +10,7 @@ import { Container } from '../components/Container';
 import { Grid } from '../components/Grid';
 import { Flex } from '../components/Flex';
 import { ProductCard } from '../components/ProductCard';
+import { ProductDetail } from '../components/ProductDetail';
 import { Hero } from '../components/Hero';
 import { Navigation } from '../components/Navigation';
 import { ZaraHeader } from '../components/ZaraHeader';
@@ -36,6 +37,7 @@ const componentMap: Record<string, React.ComponentType<any>> = {
   Grid,
   Flex,
   ProductCard,
+  ProductDetail,
   Hero,
   Navigation,
   ZaraHeader,

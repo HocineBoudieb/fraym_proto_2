@@ -226,7 +226,7 @@ Conteneur flexbox avec contrôle de direction et alignement.
 ## Composants Spécialisés
 
 ### ProductCard
-Carte produit pour e-commerce.
+Carte produit pour e-commerce (affichage en grille).
 
 **Props :**
 - `title` (string) - Nom du produit
@@ -247,6 +247,64 @@ Carte produit pour e-commerce.
     "image": "/images/phone.jpg",
     "description": "Le dernier smartphone avec toutes les fonctionnalités",
     "buttonText": "Acheter maintenant"
+  }
+}
+```
+
+### ProductDetail
+Page de détail produit complète pour e-commerce.
+
+**Props :**
+- `title` (string) - Nom du produit
+- `price` (string) - Prix actuel
+- `originalPrice` (string, optionnel) - Prix barré
+- `image` (string) - URL de l'image principale
+- `images` (array, optionnel) - URLs des images supplémentaires
+- `description` (string) - Description détaillée
+- `features` (array, optionnel) - Liste des caractéristiques
+- `specifications` (object, optionnel) - Spécifications techniques
+- `rating` (number, optionnel) - Note sur 5
+- `reviewCount` (number, optionnel) - Nombre d'avis
+- `availability` (string, optionnel) - 'in-stock', 'out-of-stock', 'limited'
+- `category` (string, optionnel) - Catégorie du produit
+- `brand` (string, optionnel) - Marque
+- `sku` (string, optionnel) - Référence produit
+- `className` (string, optionnel) - Classes CSS additionnelles
+- `onAddToCart` (function, optionnel) - Action ajouter au panier
+- `onBuyNow` (function, optionnel) - Action acheter maintenant
+- `onWishlist` (function, optionnel) - Action liste de souhaits
+
+**Exemple :**
+```json
+{
+  "type": "ProductDetail",
+  "props": {
+    "title": "iPhone 15 Pro Max",
+    "price": "1 229,00 €",
+    "originalPrice": "1 329,00 €",
+    "image": "/images/iphone-main.jpg",
+    "images": ["/images/iphone-2.jpg", "/images/iphone-3.jpg"],
+    "description": "Le smartphone le plus avancé d'Apple avec puce A17 Pro, système de caméra Pro et écran Super Retina XDR.",
+    "features": [
+      "Puce A17 Pro avec GPU 6 cœurs",
+      "Système de caméra Pro 48 Mpx",
+      "Écran Super Retina XDR 6,7 pouces",
+      "Autonomie jusqu'à 29 heures de lecture vidéo"
+    ],
+    "specifications": {
+      "Écran": "6,7 pouces Super Retina XDR",
+      "Processeur": "Puce A17 Pro",
+      "Stockage": "256 Go",
+      "Caméra": "48 Mpx Principal + 12 Mpx Ultra grand-angle",
+      "Batterie": "Jusqu'à 29h de lecture vidéo",
+      "Poids": "221 grammes"
+    },
+    "rating": 4.5,
+    "reviewCount": 1247,
+    "availability": "in-stock",
+    "category": "Smartphones",
+    "brand": "Apple",
+    "sku": "IPHONE15PM-256-TIT"
   }
 }
 ```
