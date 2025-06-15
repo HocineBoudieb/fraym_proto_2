@@ -51,6 +51,11 @@ const componentMap: Record<string, React.ComponentType<any>> = {
   Welcome
 };
 
+// Interface pour ComponentFactory
+interface ComponentFactoryProps {
+  componentData: ComponentTree;
+}
+
 /**
  * Fonction qui rend un arbre de composants à partir d'une structure JSON
  */
@@ -93,3 +98,15 @@ export const renderComponent = (componentTree: ComponentTree): React.ReactNode =
   
   return <Component {...processedProps} />;
 };
+
+// ComponentFactory pour rendre les composants dynamiquement
+export function ComponentFactory({ componentData }: ComponentFactoryProps) {
+  console.log('🏭 ComponentFactory appelé avec:', componentData);
+  
+  // Si c'est une chaîne, la retourner directement
+  if (typeof componentData === 'string') {
+    return <div>{componentData}</div>;
+  }
+  
+  return <>{renderComponent(componentData)}</>;
+}

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import type { ChatResponse, ComponentTree, Cart as CartType } from '../types';
-import { createSession, sendMessage, autoRegister, getCart } from '../services/api';
-import { saveAuthData, getAuthData } from '../services/storage';
+import { ComponentFactory } from '../services/componentRenderer';
+import { sendMessage, createSession, autoRegister, getCart, addToCart } from '../services/api';
+import { saveAuthData, getAuthData, updateCurrentSession, saveSessionData, getSessionDataByIP, clearCurrentSessionData } from '../services/storage';
 import { Container } from './Container';
 import { Card } from './Card';
 import { Text } from './Text';
@@ -50,10 +51,25 @@ const normalizeProps = (props: any) => {
   return { ...props };
 };
 
-// Interface pour ComponentFactory
-interface ComponentFactoryProps {
-  componentData: ComponentTree;
-}
+// Fonction pour ajouter un produit au panier
+const addProductToCart = async (productId: string, productName: string, quantity: number, unitPrice: number, apiKey: string) => {
+  try {
+    console.log('🛒 Ajout au panier:', { productId, productName, quantity, unitPrice });
+    
+    const response = await addToCart({
+      productId,
+      productName,
+      quantity,
+      unitPrice
+    }, apiKey);
+    
+    console.log('🛒 Réponse ajout panier:', response);
+    return response;
+  } catch (error) {
+    console.error('🛒 Erreur ajout panier:', error);
+    throw error;
+  }
+};
 
 // Mapping des composants disponibles
 const componentMap: Record<string, React.ComponentType<any>> = {
@@ -82,121 +98,7 @@ const componentMap: Record<string, React.ComponentType<any>> = {
   Welcome
 };
 
-// ComponentFactory pour rendre les composants dynamiquement
-function ComponentFactory({ componentData }: ComponentFactoryProps) {
-  console.log('🏭 ComponentFactory appelé avec:', componentData);
-  
-  // Si c'est une chaîne, la retourner directement
-  if (typeof componentData === 'string') {
-    console.log('📝 Rendu de texte:', componentData);
-    return componentData;
-  }
-  
-  // Si c'est un tableau, rendre chaque élément
-  if (Array.isArray(componentData)) {
-    console.log('📋 Rendu de tableau avec', componentData.length, 'éléments');
-    return (
-      <div className="space-y-4">
-        {componentData.map((component, index) => (
-          <ComponentFactory 
-            key={index} 
-            componentData={component} 
-          />
-        ))}
-      </div>
-    );
-  }
-  
-  // Gérer le cas où les données ont une structure avec template et components
-  if (componentData.template && componentData.components) {
-    console.log('🎨 Structure template détectée, rendu des composants:', componentData.components);
-    return (
-      <div className="space-y-4">
-        {componentData.components.map((component: any, index: number) => (
-          <ComponentFactory 
-            key={index} 
-            componentData={component} 
-          />
-        ))}
-      </div>
-    );
-  }
-  
-  // Gérer les deux formats possibles: 'type' ou 'component'
-  const type = componentData.type || componentData.component;
-  const props = componentData.props || {};
-  console.log('🔧 Rendu du composant:', type, 'avec props:', props);
-  
-  // Récupérer le composant depuis le mapping
-  const Component = componentMap[type as keyof typeof componentMap];
-  
-  if (!Component) {
-    console.warn(`❌ Component type "${type}" not found. Available types:`, Object.keys(componentMap));
-    return (
-      <div className="p-4 bg-yellow-100 border border-yellow-400 rounded-lg">
-        <Text color="yellow-800">Composant "{type}" non trouvé</Text>
-      </div>
-    );
-  }
-  
-  console.log('✅ Composant trouvé:', Component.name || type);
-  const normalizedProps = normalizeProps(props);
-  
-  // Gestion spéciale pour le composant Grid avec des items
-  if (type === 'Grid' && props.items && Array.isArray(props.items)) {
-    console.log('🔲 Rendu spécial Grid avec items:', props.items);
-    const { items, columns, ...gridProps } = props;
-    
-    return (
-      <Component cols={columns || 3} {...filterValidProps(gridProps)}>
-        {items.map((item: any, index: number) => (
-          <ComponentFactory 
-            key={index} 
-            componentData={item} 
-          />
-        ))}
-      </Component>
-    );
-  }
-  
-  // Rendre les enfants s'ils existent
-  const renderChildren = () => {
-    // Si il y a un attribut 'text', l'utiliser comme contenu
-    if (props.text) {
-      console.log('📝 Utilisation de l\'attribut text:', props.text);
-      return props.text;
-    }
-    
-    if (!props.children) return null;
-    
-    if (typeof props.children === 'string') {
-      console.log('👶 Enfant texte:', props.children);
-      return props.children;
-    }
-    
-    if (Array.isArray(props.children)) {
-      console.log('👶 Enfants tableau:', props.children.length, 'éléments');
-      return props.children.map((child, index) => (
-        <ComponentFactory 
-          key={child.id || `child-${index}`} 
-          componentData={child} 
-        />
-      ));
-    }
-    
-    console.log('👶 Enfant objet:', props.children);
-    return (
-      <ComponentFactory componentData={props.children} />
-    );
-  };
-  
-  console.log('🎯 Rendu final du composant:', type);
-  return (
-    <Component {...filterValidProps(normalizedProps)}>
-      {renderChildren()}
-    </Component>
-  );
-}
+
 
 export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -235,8 +137,23 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
         setCurrentApiKey(authData.apiKey);
         setIsConnected(true);
         
-        // Créer une nouvelle session si nécessaire
-        if (!authData.currentSessionId) {
+        // Vérifier s'il y a une session sauvegardée pour cette IP
+        const savedSessionData = await getSessionDataByIP();
+        console.log('🔄 Données de session sauvegardées trouvées:', savedSessionData);
+        
+        if (savedSessionData && savedSessionData.sessionId) {
+          // Restaurer la session précédente
+          setCurrentSessionId(savedSessionData.sessionId);
+          if (savedSessionData.lastComponents) {
+            setRenderedComponents(savedSessionData.lastComponents);
+            console.log('✅ Composants restaurés depuis la session sauvegardée');
+          }
+          
+          // Mettre à jour les données d'auth avec la session restaurée
+          authData.currentSessionId = savedSessionData.sessionId;
+          await saveAuthData(authData);
+        } else if (!authData.currentSessionId) {
+          // Créer une nouvelle session si aucune session sauvegardée
           await createNewSession(authData.apiKey);
         } else {
           setCurrentSessionId(authData.currentSessionId);
@@ -316,6 +233,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
     setError(null);
     
     try {
+      // Effacer les données de session sauvegardées
+      await clearCurrentSessionData();
+      console.log('🗑️ Données de session précédentes effacées');
+      
       // Réinitialiser l'état de l'interface
       setRenderedComponents(null);
       setInputMessage('');
@@ -390,6 +311,12 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
         console.log('✅ Mise à jour des composants avec:', componentsToRender);
         setRenderedComponents(componentsToRender);
         console.log('🚀 État renderedComponents mis à jour');
+        
+        // Sauvegarder les composants dans la base de données locale
+        if (currentSessionId) {
+          await saveSessionData(currentSessionId, componentsToRender);
+          console.log('💾 Composants sauvegardés pour la session:', currentSessionId);
+        }
       } else {
         console.log('❌ Aucun composant trouvé dans la réponse');
       }
@@ -407,7 +334,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
     return (
       <div className="flex flex-col h-screen">
         {/* Header avec logo centré */}
-        <div className="py-4">
+        <div className="py-1">
           <div className="flex justify-center">
             <img 
               src="/fraym_demo_logo.png" 
@@ -447,7 +374,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
   return (
     <div className={`flex flex-col h-screen ${className}`}>
       {/* Header avec logo centré */}
-        <div className="py-4">
+        <div>
           <div className="flex justify-center">
             <img 
               src="/fraym_demo_logo.png" 

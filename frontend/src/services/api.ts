@@ -112,3 +112,23 @@ export const getCart = async (apiKey: string): Promise<Cart> => {
   console.log('🛒 Données transformées:', transformedData);
   return transformedData;
 };
+
+export const addToCart = async (productId: string, productName: string, quantity: number, unitPrice: number, apiKey: string): Promise<void> => {
+  const response = await fetch(`${API_URL}/cart/add`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      product_id: productId,
+      product_name: productName,
+      quantity: quantity,
+      unit_price: unitPrice
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Erreur lors de l'ajout au panier: ${response.statusText}`);
+  }
+};
