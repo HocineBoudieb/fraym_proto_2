@@ -23,6 +23,7 @@ export interface ChatResponse {
   message: Message;
   assistant_response: Message;
   components?: ComponentTree;
+  suggestion?: string;
 }
 
 // Types pour les composants

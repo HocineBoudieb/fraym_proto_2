@@ -41,6 +41,7 @@ class MessageResponse(BaseModel):
 class ChatResponse(BaseModel):
     message: MessageResponse
     assistant_response: MessageResponse
+    suggestion: Optional[str] = None
 
 # Error Models
 class ErrorResponse(BaseModel):

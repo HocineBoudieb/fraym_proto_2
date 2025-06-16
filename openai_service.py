@@ -62,10 +62,11 @@ class OpenAIService:
                     processed_content = self._process_response(content)
                     
                     # Traiter le useState si présent et user_id fourni
+                    suggestion = None
                     if user_id:
-                        processed_content, cart_updated = await self._handle_use_state(processed_content, user_id)
+                        processed_content, cart_updated, suggestion = await self._handle_use_state(processed_content, user_id)
                     
-                    return processed_content, latest_message.id
+                    return processed_content, latest_message.id, suggestion
             
             raise Exception("Aucune réponse de l'assistant trouvée")
         else:
@@ -169,13 +170,18 @@ class OpenAIService:
         
         return content
     
-    async def _handle_use_state(self, content: str, user_id: str) -> tuple[str, bool]:
+    async def _handle_use_state(self, content: str, user_id: str) -> tuple[str, bool, str]:
         """Traite le useState dans la réponse et met à jour le cart si nécessaire"""
         cart_updated = False
+        suggestion = None
         
         try:
             # Parser le JSON de la réponse
             response_data = json.loads(content)
+            
+            # Extraire la suggestion si présente
+            if "suggestion" in response_data:
+                suggestion = response_data["suggestion"]
             
             # Vérifier s'il y a un useState avec un cart
             if "useState" in response_data and "cart" in response_data["useState"]:
@@ -189,13 +195,13 @@ class OpenAIService:
                 response_data["cart_updated"] = cart_updated
                 
                 # Retourner le JSON modifié
-                return json.dumps(response_data), cart_updated
+                return json.dumps(response_data), cart_updated, suggestion
                 
         except (json.JSONDecodeError, KeyError) as e:
             # Si le parsing échoue ou si les clés n'existent pas, on ignore silencieusement
             pass
         
-        return content, cart_updated
+        return content, cart_updated, suggestion
     
     async def _update_user_cart(self, user_id: str, cart_items: List[Dict[str, Any]]) -> bool:
         """Met à jour le cart de l'utilisateur dans la base de données avec synchronisation intelligente"""

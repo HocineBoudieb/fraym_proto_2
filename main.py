@@ -281,7 +281,7 @@ async def chat(
         )
         
         # Exécuter l'assistant et récupérer la réponse
-        assistant_response, assistant_message_id = await openai_service.run_assistant(
+        assistant_response, assistant_message_id, suggestion = await openai_service.run_assistant(
             session.openaiThreadId,
             current_user.id
         )
@@ -314,7 +314,8 @@ async def chat(
                 role=assistant_message.role,
                 content=assistant_message.content,
                 created_at=assistant_message.createdAt
-            )
+            ),
+            suggestion=suggestion
         )
     
     except Exception as e:

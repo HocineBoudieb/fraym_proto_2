@@ -110,6 +110,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
   const [currentApiKey, setCurrentApiKey] = useState<string | null>(null);
   const [cart, setCart] = useState<CartType>({ items: [], totalItems: 0, totalPrice: 0 });
   const [showCart, setShowCart] = useState(false);
+  const [suggestion, setSuggestion] = useState<string | null>(null);
 
   // Charger les données d'authentification au démarrage
   useEffect(() => {
@@ -240,6 +241,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
       // Réinitialiser l'état de l'interface
       setRenderedComponents(null);
       setInputMessage('');
+      setSuggestion(null);
       
       // Créer une nouvelle session
       await createNewSession(currentApiKey);
@@ -255,6 +257,14 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
   // Cette section contenait auparavant la fonction handleConnect qui a été remplacée par l'authentification automatique
 
   // Envoi de message
+  // Fonction pour gérer le clic sur la suggestion
+  const handleSuggestionClick = () => {
+    if (suggestion) {
+      handleSendMessage(suggestion);
+      setSuggestion(null); // Effacer la suggestion après l'envoi
+    }
+  };
+
   const handleSendMessage = async (messageContent?: string) => {
     const content = messageContent || inputMessage.trim();
     if (!content || !currentSessionId || !currentApiKey) return;
@@ -275,6 +285,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
       
       console.log('🔍 Réponse API reçue:', response);
       console.log('🎨 Composants dans la réponse:', response.components);
+      console.log('💡 Suggestion reçue:', response.suggestion);
+      
+      // Mettre à jour la suggestion
+      setSuggestion(response.suggestion || null);
       
       // Vérifier si les composants sont dans response.components directement
       let componentsToRender = response.components;
@@ -458,6 +472,33 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
       {/* Zone de saisie avec glassmorphism avancé - Version responsive */}
       <div className="fixed bottom-0 left-0 right-0 p-3 sm:p-6">
         <Container maxWidth="4xl">
+          {/* Affichage de la suggestion */}
+          {suggestion && (
+            <div className="mb-3 sm:mb-4">
+              <div 
+                onClick={handleSuggestionClick}
+                className="backdrop-blur-2xl bg-gradient-to-r from-blue-500/20 to-purple-600/20 hover:from-blue-600/30 hover:to-purple-700/30 border border-white/30 rounded-2xl px-4 py-3 cursor-pointer transition-all duration-300 hover:scale-[1.02] transform-gpu shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]"
+                style={{
+                  backdropFilter: 'blur(20px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                  background: 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(147,51,234,0.15) 100%)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 8px 32px rgba(31,38,135,0.2)'
+                }}
+              >
+                <div className="flex items-center space-x-2">
+                  <svg className="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  <Text className="text-gray-700 text-sm font-medium flex-1">
+                    {suggestion}
+                  </Text>
+                  <Text className="text-xs text-gray-500 opacity-75">
+                    Cliquez pour envoyer
+                  </Text>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="flex items-center space-x-2 sm:space-x-4">
             <Input
               placeholder="Décrivez l'interface que vous souhaitez générer..."
