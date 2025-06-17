@@ -13,7 +13,7 @@ function App() {
       </div>
       
       {/* Contenu principal */}
-      <div className="relative z-10">
+      <div className="relative z-10 mb-50">
         <ChatApp />
       </div>
     </div>

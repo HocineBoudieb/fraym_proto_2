@@ -347,38 +347,38 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
   if (!isConnected) {
     return (
       <div className="flex flex-col h-screen">
-        {/* Header avec logo centré */}
-        <div className="py-1">
-          <div className="flex justify-center">
-            <img 
-              src="/fraym_demo_logo.png" 
-              alt="Logo de la boutique" 
-              className="h-28 w-auto"
-            />
-          </div>
-        </div>
-        
-        <div className="flex-1 flex items-center justify-center">
-          <Container maxWidth="md" className="py-16">
-            <div className="backdrop-blur-xl bg-white/20 border border-white/30 rounded-3xl p-8 text-center shadow-2xl">
-              <Text size="2xl" weight="bold" className="mb-4 text-gray-800">
-                Initialisation...
-              </Text>
-              <Text color="gray-700" className="mb-6">
-                Connexion automatique en cours, veuillez patienter.
-              </Text>
-              {error && (
-                <div className="mt-4 backdrop-blur-xl bg-red-500/20 border border-red-300/30 rounded-xl px-4 py-3">
-                  <Text color="red-700" size="sm">
-                    {error}
-                  </Text>
-                </div>
-              )}
-              <div className="mt-6">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              </div>
+        <div className="flex-1 overflow-y-auto">
+          {/* Header avec logo centré */}
+            <div className="flex justify-center">
+              <img 
+                src="/fraym_demo_logo.png" 
+                alt="Logo de la boutique" 
+                className="h-28 w-auto"
+              />
             </div>
-          </Container>
+          
+          <div className="flex-1 flex items-center justify-center">
+            <Container maxWidth="md" className="py-16">
+              <div className="backdrop-blur-xl bg-white/20 border border-white/30 rounded-3xl p-8 text-center shadow-2xl">
+                <Text size="2xl" weight="bold" className="mb-4 text-gray-800">
+                  Initialisation...
+                </Text>
+                <Text color="gray-700" className="mb-6">
+                  Connexion automatique en cours, veuillez patienter.
+                </Text>
+                {error && (
+                  <div className="mt-4 backdrop-blur-xl bg-red-500/20 border border-red-300/30 rounded-xl px-4 py-3">
+                    <Text color="red-700" size="sm">
+                      {error}
+                    </Text>
+                  </div>
+                )}
+                <div className="mt-6">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                </div>
+              </div>
+            </Container>
+          </div>
         </div>
       </div>
     );
@@ -387,8 +387,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
   // Interface de rendu des composants
   return (
     <div className={`flex flex-col h-screen ${className}`}>
-      {/* Header avec logo centré */}
-        <div>
+      {/* Zone de contenu dynamique - Rendu des composants */}
+      <div className="flex-1 overflow-y-auto pb-0">
+        {/* Header avec logo centré - maintenant dans la zone scrollable */}
           <div className="flex justify-center">
             <img 
               src="/fraym_demo_logo.png" 
@@ -396,10 +397,6 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
               className="h-30 w-auto"
             />
           </div>
-        </div>
-      
-      {/* Zone de contenu dynamique - Rendu des composants */}
-      <div className="flex-1 overflow-y-auto pb-32">
         {isLoading ? (
           <div className="fixed inset-0 backdrop-blur-xl bg-white/30 z-50 flex flex-col justify-center items-center">
             <div className="mb-8">
@@ -448,7 +445,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
             </div>
           </div>
         ) : renderedComponents ? (
-          <div className="w-full h-full flex justify-center items-start py-8">
+          <div className="w-full h-full flex justify-center items-start pt-0 py-8">
             <div className="max-w-6xl w-full px-4 space-y-6">
               <ComponentFactory componentData={renderedComponents} />
             </div>
@@ -501,7 +498,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
           )}
           <div className="flex items-center space-x-2 sm:space-x-4">
             <Input
-              placeholder="Décrivez l'interface que vous souhaitez générer..."
+              placeholder="Écrivez un message..."
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => {
