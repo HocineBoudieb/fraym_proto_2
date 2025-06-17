@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends, status, Request, Header
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timedelta
 from typing import Optional, List
@@ -320,6 +321,64 @@ async def chat(
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur lors du chat: {str(e)}")
+    finally:
+        await prisma.disconnect()
+
+# Route de chat en streaming
+@app.post("/sessions/{session_id}/chat/stream")
+async def chat_stream(
+    session_id: str,
+    message_data: MessageCreate,
+    api_key: str = Header(..., alias="Authorization")
+):
+    """Envoie un message et renvoie la reponse en streaming via SSE"""
+    if not api_key.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Format d'autorisation invalide")
+
+    actual_api_key = api_key.replace("Bearer ", "")
+    current_user = await verify_api_key(actual_api_key)
+
+    prisma = Prisma()
+    await prisma.connect()
+    try:
+        session = await prisma.session.find_first(
+            where={"id": session_id, "userId": current_user.id}
+        )
+        if not session:
+            raise HTTPException(status_code=404, detail="Session non trouvée")
+
+        user_message = await prisma.message.create(
+            data={"sessionId": session_id, "role": "user", "content": message_data.content}
+        )
+
+        messages = await prisma.message.find_many(
+            where={"sessionId": session_id},
+            order={"createdAt": "asc"}
+        )
+        history = [{"role": m.role, "content": m.content} for m in messages]
+        history.append({"role": "user", "content": message_data.content})
+
+        async def event_generator():
+            assistant_content = ""
+            async for chunk in openai_service.stream_chat_completion(history):
+                assistant_content += chunk
+                yield f"data: {chunk}\n\n"
+
+            assistant_message = await prisma.message.create(
+                data={"sessionId": session_id, "role": "assistant", "content": assistant_content}
+            )
+
+            await prisma.session.update(
+                where={"id": session_id},
+                data={"updatedAt": datetime.now()}
+            )
+
+            yield "data: [DONE]\n\n"
+
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors du chat stream: {str(e)}")
     finally:
         await prisma.disconnect()
 

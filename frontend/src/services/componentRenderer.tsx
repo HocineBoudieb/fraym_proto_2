@@ -112,3 +112,13 @@ export function ComponentFactory({ componentData }: ComponentFactoryProps) {
   
   return <>{renderComponent(componentData)}</>;
 }
+
+// Tentative de rendu à partir d'un JSON partiel
+export function tryRenderFromString(jsonString: string): React.ReactNode | null {
+  try {
+    const data = JSON.parse(jsonString);
+    return renderComponent(data);
+  } catch {
+    return null;
+  }
+}
