@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import type { ChatResponse, ComponentTree, Cart as CartType } from '../types';
+import type { ComponentTree, Cart as CartType } from '../types';
 import { ComponentFactory } from '../services/componentRenderer';
-import { sendMessage, createSession, autoRegister, getCart, addToCart } from '../services/api';
+import { sendMessageStream, createSession, autoRegister, getCart, addToCart } from '../services/api';
 import { saveAuthData, getAuthData, updateCurrentSession, saveSessionData, getSessionDataByIP, clearCurrentSessionData } from '../services/storage';
 import { Container } from './Container';
 import { Card } from './Card';
@@ -280,59 +280,66 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
         setInputMessage('');
       }
 
-      // Envoyer le message à l'API
-      const response: ChatResponse = await sendMessage(currentSessionId, currentApiKey, content);
-      
-      console.log('🔍 Réponse API reçue:', response);
-      console.log('🎨 Composants dans la réponse:', response.components);
-      console.log('💡 Suggestion reçue:', response.suggestion);
-      
-      // Mettre à jour la suggestion
-      setSuggestion(response.suggestion || null);
-      
-      // Vérifier si les composants sont dans response.components directement
-      let componentsToRender = response.components;
-      let cartUpdated = false;
-      
-      // Si pas de composants directs, vérifier si c'est dans une structure avec template
-      if (!componentsToRender && response.assistant_response?.content) {
-        try {
-          const parsedContent = JSON.parse(response.assistant_response.content);
-          console.log('📋 Contenu parsé:', parsedContent);
-          
-          // Vérifier si le cart a été mis à jour
-          if (parsedContent.cart_updated === true) {
-            cartUpdated = true;
-            console.log('🛒 Cart mis à jour détecté!');
+      let rawResponse = '';
+      let buffer = '';
+      let inComponents = false;
+      let braceDepth = 0;
+      let objStart = -1;
+      const streamedComponents: ComponentTree[] = [];
+
+      await sendMessageStream(currentSessionId, currentApiKey, content, (chunk) => {
+        rawResponse += chunk;
+        buffer += chunk;
+
+        if (!inComponents) {
+          const match = buffer.match(/"components"\s*:\s*\[/);
+          if (match) {
+            buffer = buffer.slice(match.index! + match[0].length);
+            inComponents = true;
+          } else {
+            return;
           }
-          
-          if (parsedContent.components) {
-            componentsToRender = parsedContent.components;
-            console.log('🔄 Composants trouvés dans le contenu parsé:', componentsToRender);
+        }
+
+        for (let i = 0; i < buffer.length; i++) {
+          const c = buffer[i];
+          if (c === '{') {
+            if (braceDepth === 0) objStart = i;
+            braceDepth++;
+          } else if (c === '}') {
+            braceDepth--;
+            if (braceDepth === 0 && objStart !== -1) {
+              const objStr = buffer.slice(objStart, i + 1);
+              try {
+                const comp = JSON.parse(objStr);
+                streamedComponents.push(comp);
+                setRenderedComponents([...streamedComponents]);
+              } catch {
+                // ignore partial parse errors
+              }
+              buffer = buffer.slice(i + 1).replace(/^,\s*/, '');
+              i = -1;
+              objStart = -1;
+            }
+          } else if (c === ']' && braceDepth === 0 && objStart === -1) {
+            inComponents = false;
+            buffer = buffer.slice(i + 1);
+            break;
           }
-        } catch (e) {
-          console.log('⚠️ Impossible de parser le contenu comme JSON:', e);
         }
-      }
-      
-      // Récupérer le cart si il a été mis à jour
-      if (cartUpdated) {
-        await fetchCart();
-      }
-      
-      // Mettre à jour les composants si fournis
-      if (componentsToRender) {
-        console.log('✅ Mise à jour des composants avec:', componentsToRender);
-        setRenderedComponents(componentsToRender);
-        console.log('🚀 État renderedComponents mis à jour');
-        
-        // Sauvegarder les composants dans la base de données locale
-        if (currentSessionId) {
-          await saveSessionData(currentSessionId, componentsToRender);
-          console.log('💾 Composants sauvegardés pour la session:', currentSessionId);
+      });
+
+      // Après la fin du streaming, vérifier si le JSON complet est valide
+      try {
+        const finalParsed = JSON.parse(rawResponse);
+        if (finalParsed.cart_updated) {
+          await fetchCart();
         }
-      } else {
-        console.log('❌ Aucun composant trouvé dans la réponse');
+        if (finalParsed.components) {
+          await saveSessionData(currentSessionId, finalParsed.components);
+        }
+      } catch (e) {
+        console.error('Impossible de parser la réponse finale', e);
       }
       
     } catch (error) {

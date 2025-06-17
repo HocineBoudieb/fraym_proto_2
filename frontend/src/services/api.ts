@@ -60,6 +60,47 @@ export const sendMessage = async (sessionId: string, apiKey: string, content: st
   return response.json();
 };
 
+export const sendMessageStream = async (
+  sessionId: string,
+  apiKey: string,
+  content: string,
+  onChunk: (chunk: string) => void
+): Promise<void> => {
+  const response = await fetch(`${API_URL}/sessions/${sessionId}/chat/stream`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({ content })
+  });
+
+  if (!response.ok || !response.body) {
+    throw new Error(`Erreur lors de l'envoi du message: ${response.statusText}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.replace('data: ', '').trim();
+        if (data === '[DONE]') {
+          return;
+        }
+        onChunk(data);
+      }
+    }
+  }
+};
+
 export const getMessages = async (sessionId: string, apiKey: string): Promise<Message[]> => {
   const response = await fetch(`${API_URL}/sessions/${sessionId}/messages`, {
     headers: {

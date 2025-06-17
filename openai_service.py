@@ -25,6 +25,16 @@ class OpenAIService:
             content=content
         )
         return message.id
+
+    async def stream_chat_completion(self, messages: List[Dict[str, str]]):
+        """Stream a chat completion response from OpenAI."""
+        async for chunk in self.client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            stream=True,
+        ):
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
     
     async def run_assistant(self, thread_id: str, user_id: str = None) -> str:
         """Lance l'assistant sur un thread et attend la réponse"""
