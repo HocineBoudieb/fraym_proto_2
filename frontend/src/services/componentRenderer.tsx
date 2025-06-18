@@ -53,27 +53,32 @@ const componentMap: Record<string, React.ComponentType<any>> = {
   Welcome
 };
 
-// Interface pour ComponentFactory
-interface ComponentFactoryProps {
-  componentData: ComponentTree;
-}
-
 /**
  * Fonction qui rend un arbre de composants à partir d'une structure JSON
  */
-export const renderComponent = (componentTree: ComponentTree): React.ReactNode => {
+export const renderComponent = (componentTree: ComponentTree, animationIndex?: number, isNewContent?: boolean): React.ReactNode => {
   // Si c'est une chaîne de caractères, la retourner directement
   if (typeof componentTree === 'string') {
     return componentTree;
   }
   
-  // Si c'est un tableau, rendre chaque élément
+  // Si c'est un tableau, rendre chaque élément avec des animations séquentielles
   if (Array.isArray(componentTree)) {
-    return componentTree.map((component, index) => (
-      <React.Fragment key={index}>
-        {renderComponent(component)}
-      </React.Fragment>
-    ));
+    return componentTree.map((component, index) => {
+      // Générer un délai aléatoire pour l'animation
+      const randomDelay = isNewContent ? Math.random() * 1.5 : 0;
+      const staggerClass = isNewContent ? `animate-staggered-${(index % 6) + 1}` : '';
+      
+      return (
+        <div 
+          key={index} 
+          className={staggerClass}
+          style={isNewContent ? { animationDelay: `${randomDelay}s` } : {}}
+        >
+          {renderComponent(component, index, isNewContent)}
+        </div>
+      );
+    });
   }
   
   // C'est un composant unique
@@ -95,20 +100,41 @@ export const renderComponent = (componentTree: ComponentTree): React.ReactNode =
   // Traiter les enfants récursivement si nécessaire
   const processedProps = { ...(props || {}) };
   if (props?.children) {
-    processedProps.children = renderComponent(props.children) as any;
+    processedProps.children = renderComponent(props.children, animationIndex, isNewContent) as any;
+  }
+  
+  // Ajouter l'animation pour les nouveaux composants
+  if (isNewContent && animationIndex !== undefined) {
+    const randomDelay = Math.random() * 1.5;
+    const staggerClass = `animate-staggered-${(animationIndex % 6) + 1}`;
+    
+    return (
+      <div 
+        className={staggerClass}
+        style={{ animationDelay: `${randomDelay}s` }}
+      >
+        <Component {...processedProps} />
+      </div>
+    );
   }
   
   return <Component {...processedProps} />;
 };
 
+// Interface pour ComponentFactory avec support des animations
+interface ComponentFactoryProps {
+  componentData: ComponentTree;
+  isNewContent?: boolean;
+}
+
 // ComponentFactory pour rendre les composants dynamiquement
-export function ComponentFactory({ componentData }: ComponentFactoryProps) {
-  console.log('🏭 ComponentFactory appelé avec:', componentData);
+export function ComponentFactory({ componentData, isNewContent = false }: ComponentFactoryProps) {
+  console.log('🏭 ComponentFactory appelé avec:', componentData, 'isNewContent:', isNewContent);
   
   // Si c'est une chaîne, la retourner directement
   if (typeof componentData === 'string') {
     return <div>{componentData}</div>;
   }
   
-  return <>{renderComponent(componentData)}</>;
+  return <>{renderComponent(componentData, 0, isNewContent)}</>;
 }

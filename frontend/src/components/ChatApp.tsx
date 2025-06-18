@@ -106,6 +106,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [inputMessage, setInputMessage] = useState('');
   const [renderedComponents, setRenderedComponents] = useState<ComponentTree | null>(null);
+  const [previousComponents, setPreviousComponents] = useState<ComponentTree | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isNewContent, setIsNewContent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentApiKey, setCurrentApiKey] = useState<string | null>(null);
   const [cart, setCart] = useState<CartType>({ items: [], totalItems: 0, totalPrice: 0 });
@@ -240,6 +243,9 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
       
       // Réinitialiser l'état de l'interface
       setRenderedComponents(null);
+      setPreviousComponents(null);
+      setIsTransitioning(false);
+      setIsNewContent(false);
       setInputMessage('');
       setSuggestion(null);
       
@@ -272,8 +278,11 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
     setIsLoading(true);
     setError(null);
     
-    // Effacer les composants précédents
-    setRenderedComponents(null);
+    // Sauvegarder les composants actuels pour la transition
+    if (renderedComponents) {
+      setPreviousComponents(renderedComponents);
+      setIsTransitioning(true);
+    }
 
     try {
       if (!messageContent) {
@@ -323,8 +332,31 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
       // Mettre à jour les composants si fournis
       if (componentsToRender) {
         console.log('✅ Mise à jour des composants avec:', componentsToRender);
-        setRenderedComponents(componentsToRender);
-        console.log('🚀 État renderedComponents mis à jour');
+        
+        // Si on a des composants précédents, attendre un peu pour l'animation de disparition
+        if (isTransitioning && previousComponents) {
+          setTimeout(() => {
+            setRenderedComponents(componentsToRender);
+            setIsNewContent(true);
+            setIsTransitioning(false);
+            setPreviousComponents(null);
+            console.log('🚀 État renderedComponents mis à jour avec transition');
+            
+            // Réinitialiser isNewContent après les animations
+            setTimeout(() => {
+              setIsNewContent(false);
+            }, 2000);
+          }, 800); // Délai pour permettre l'animation de vibration
+        } else {
+          setRenderedComponents(componentsToRender);
+          setIsNewContent(true);
+          console.log('🚀 État renderedComponents mis à jour');
+          
+          // Réinitialiser isNewContent après les animations
+          setTimeout(() => {
+            setIsNewContent(false);
+          }, 2000);
+        }
         
         // Sauvegarder les composants dans la base de données locale
         if (currentSessionId) {
@@ -333,11 +365,15 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
         }
       } else {
         console.log('❌ Aucun composant trouvé dans la réponse');
+        setIsTransitioning(false);
+        setPreviousComponents(null);
       }
       
     } catch (error) {
       console.error('Erreur lors de l\'envoi du message:', error);
       setError('Erreur lors de l\'envoi du message.');
+      setIsTransitioning(false);
+      setPreviousComponents(null);
     } finally {
       setIsLoading(false);
     }
@@ -397,58 +433,56 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
               className="h-30 w-auto"
             />
           </div>
-        {isLoading ? (
-          <div className="fixed inset-0 backdrop-blur-xl bg-white/30 z-50 flex flex-col justify-center items-center">
-            <div className="mb-8">
-              <Text size="2xl" weight="bold" className="text-gray-800 mb-2">
-                Web page generation
-              </Text>
-              <Text size="lg" className="text-gray-600">
-                Generating content...
-              </Text>
-            </div>
-            
-            {/* Animation avec des divs grises qui apparaissent progressivement */}
-            <div className="w-full max-w-2xl px-8 space-y-4">
-              {/* Première ligne - longue */}
-              <div className="h-6 bg-gray-300 rounded-full animate-pulse" style={{animationDelay: '0s'}}></div>
-              
-              {/* Deuxième ligne - moyenne */}
-              <div className="h-6 bg-gray-300 rounded-full animate-pulse w-3/4" style={{animationDelay: '0.3s'}}></div>
-              
-              {/* Troisième ligne - longue */}
-              <div className="h-6 bg-gray-300 rounded-full animate-pulse" style={{animationDelay: '0.6s'}}></div>
-              
-              {/* Quatrième ligne - courte */}
-              <div className="h-6 bg-gray-300 rounded-full animate-pulse w-1/2" style={{animationDelay: '0.9s'}}></div>
-              
-              {/* Liste avec puces */}
-              <div className="space-y-3 mt-8">
-                <div className="flex items-center space-x-3" style={{animationDelay: '1.2s'}}>
-                  <div className="w-3 h-3 bg-gray-400 rounded-full animate-pulse"></div>
-                  <div className="h-4 bg-gray-300 rounded-full animate-pulse flex-1"></div>
-                </div>
-                <div className="flex items-center space-x-3" style={{animationDelay: '1.5s'}}>
-                  <div className="w-3 h-3 bg-gray-400 rounded-full animate-pulse"></div>
-                  <div className="h-4 bg-gray-300 rounded-full animate-pulse w-4/5"></div>
-                </div>
-                <div className="flex items-center space-x-3" style={{animationDelay: '1.8s'}}>
-                  <div className="w-3 h-3 bg-gray-400 rounded-full animate-pulse"></div>
-                  <div className="h-4 bg-gray-300 rounded-full animate-pulse w-2/3"></div>
+        {(renderedComponents || (isTransitioning && previousComponents)) ? (
+          <div className="relative w-full h-full">
+            {/* Loader overlay pendant la génération */}
+            {isLoading && (
+              <div className="absolute top-0 left-0 right-0 z-50 flex justify-center pt-8">
+                <div className="backdrop-blur-xl bg-white/90 border border-white/40 rounded-2xl px-6 py-4 shadow-2xl animate-pulse">
+                  <div className="flex items-center space-x-3">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    <Text size="sm" weight="medium" className="text-gray-800">
+                      Génération en cours...
+                    </Text>
+                  </div>
                 </div>
               </div>
-              
-              {/* Bouton de simulation */}
-              <div className="mt-8 flex justify-center">
-                <div className="h-10 w-32 bg-gray-400 rounded-lg animate-pulse" style={{animationDelay: '2.1s'}}></div>
+            )}
+            
+            <div className={`w-full h-full flex justify-center items-start pt-0 py-8 transition-all duration-500 ${
+              isLoading ? 'opacity-80' : 'opacity-100'
+            }`}>
+              <div className={`max-w-6xl w-full px-4 space-y-6 ${
+                isLoading && isTransitioning
+                  ? 'animate-vibrate' 
+                  : !isLoading && renderedComponents
+                  ? 'animate-slideInUp'
+                  : ''
+              }`}>
+                <ComponentFactory 
+                   componentData={
+                     isTransitioning && previousComponents && isLoading 
+                       ? previousComponents 
+                       : renderedComponents
+                   }
+                   isNewContent={!isLoading && isNewContent}
+                 />
               </div>
             </div>
           </div>
-        ) : renderedComponents ? (
-          <div className="w-full h-full flex justify-center items-start pt-0 py-8">
-            <div className="max-w-6xl w-full px-4 space-y-6">
-              <ComponentFactory componentData={renderedComponents} />
-            </div>
+        ) : isLoading ? (
+          <div className="w-full h-full flex justify-center items-center">
+            <Container maxWidth="4xl" className="py-8">
+              <div className="backdrop-blur-xl bg-white/20 border border-white/30 rounded-3xl p-8 text-center shadow-2xl animate-pulse">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <Text size="xl" weight="bold" className="mb-4 text-gray-800">
+                  Génération en cours...
+                </Text>
+                <Text color="gray-700" className="mb-6">
+                  Création de votre contenu personnalisé
+                </Text>
+              </div>
+            </Container>
           </div>
         ) : (
           <div className="w-full h-full flex justify-center items-center">
