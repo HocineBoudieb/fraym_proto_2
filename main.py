@@ -134,6 +134,17 @@ async def login(api_key: str = Header(..., alias="X-API-Key")):
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
+# Route pour récupérer le profil de l'utilisateur connecté
+@app.get("/users/me", response_model=UserResponse)
+async def get_user_profile(current_user = Depends(get_current_user)):
+    """Retourne le profil de l'utilisateur authentifié"""
+    return UserResponse(
+        id=current_user.id,
+        name=current_user.name,
+        email=current_user.email,
+        created_at=current_user.createdAt
+    )
+
 # Routes de gestion des sessions
 @app.post("/sessions", response_model=SessionResponse)
 async def create_session(
