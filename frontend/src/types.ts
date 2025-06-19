@@ -4,6 +4,14 @@ export interface User {
   apiKey: string;
 }
 
+// Profil utilisateur détaillé
+export interface UserProfile {
+  id: string;
+  name?: string;
+  email?: string;
+  created_at: string;
+}
+
 export interface Session {
   id: string;
   title: string;

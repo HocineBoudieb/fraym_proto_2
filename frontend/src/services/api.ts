@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../config';
-import type { Session, Message, ChatResponse, Cart } from '../types';
+import type { Session, Message, ChatResponse, Cart, UserProfile } from '../types';
 
 const API_URL = API_BASE_URL;
 
@@ -55,6 +55,20 @@ export const sendMessage = async (sessionId: string, apiKey: string, content: st
 
   if (!response.ok) {
     throw new Error(`Erreur lors de l'envoi du message: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+export const getUserProfile = async (apiKey: string): Promise<UserProfile> => {
+  const response = await fetch(`${API_URL}/users/me`, {
+    headers: {
+      'Authorization': `Bearer ${apiKey}`
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Erreur lors de la récupération du profil: ${response.statusText}`);
   }
 
   return response.json();

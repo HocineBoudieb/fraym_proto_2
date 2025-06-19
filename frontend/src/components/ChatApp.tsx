@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { ChatResponse, ComponentTree, Cart as CartType } from '../types';
 import { ComponentFactory } from '../services/componentRenderer';
-import { sendMessage, createSession, autoRegister, getCart, addToCart } from '../services/api';
+import { sendMessage, createSession, autoRegister, getCart, addToCart, getUserProfile } from '../services/api';
 import { saveAuthData, getAuthData, updateCurrentSession, saveSessionData, getSessionDataByIP, clearCurrentSessionData } from '../services/storage';
 import { Container } from './Container';
 import { Card } from './Card';
@@ -28,6 +28,7 @@ import { Sidebar } from './Sidebar';
 import { Welcome } from './Welcome';
 import { Cart } from './Cart';
 import { CartIcon } from './CartIcon';
+import { WelcomeAnimation } from './WelcomeAnimation';
 
 interface ChatAppProps {
   className?: string;
@@ -103,6 +104,7 @@ const componentMap: Record<string, React.ComponentType<any>> = {
 export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [inputMessage, setInputMessage] = useState('');
   const [renderedComponents, setRenderedComponents] = useState<ComponentTree | null>(null);
@@ -139,7 +141,8 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
         }
         
         setCurrentApiKey(authData.apiKey);
-        setIsConnected(true);
+
+        let sessionId: string | null = null;
         
         // Vérifier s'il y a une session sauvegardée pour cette IP
         const savedSessionData = await getSessionDataByIP();
@@ -152,20 +155,31 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
             setRenderedComponents(savedSessionData.lastComponents);
             console.log('✅ Composants restaurés depuis la session sauvegardée');
           }
-          
+
           // Mettre à jour les données d'auth avec la session restaurée
           authData.currentSessionId = savedSessionData.sessionId;
           await saveAuthData(authData);
+          sessionId = savedSessionData.sessionId;
         } else if (!authData.currentSessionId) {
           // Créer une nouvelle session si aucune session sauvegardée
-          await createNewSession(authData.apiKey);
+          const newSession = await createNewSession(authData.apiKey);
+          sessionId = newSession?.id || null;
         } else {
           setCurrentSessionId(authData.currentSessionId);
+          sessionId = authData.currentSessionId;
         }
+
+        if (sessionId) {
+          await initSessionWithProfile(authData.apiKey, sessionId);
+        }
+
+        setIsConnected(true);
+        setIsInitializing(false);
         
       } catch (error) {
         console.error('Erreur lors du chargement des données d\'authentification:', error);
         setError('Erreur lors de l\'initialisation. Veuillez recharger la page.');
+        setIsInitializing(false);
       }
     };
 
@@ -223,9 +237,23 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
         await saveAuthData(authData);
       }
       
+      return session;
     } catch (error) {
       console.error('Erreur lors de la création de session:', error);
       setError('Erreur lors de la création de session.');
+      return null;
+    }
+  };
+
+  const initSessionWithProfile = async (apiKey: string, sessionId: string) => {
+    try {
+      const profile = await getUserProfile(apiKey);
+      const prompt = `Profil utilisateur: ${JSON.stringify(profile)}. Propose des suggestions personnalisées.`;
+      const response: ChatResponse = await sendMessage(sessionId, apiKey, prompt);
+      setRenderedComponents(response.components || null);
+      setSuggestion(response.suggestion || null);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des suggestions:', error);
     }
   };
 
@@ -380,42 +408,10 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
   };
 
   // Interface de chargement pendant l'authentification automatique
-  if (!isConnected) {
+  if (!isConnected || isInitializing) {
     return (
       <div className="flex flex-col h-screen">
-        <div className="flex-1 overflow-y-auto">
-          {/* Header avec logo centré */}
-            <div className="flex justify-center">
-              <img 
-                src="/fraym_demo_logo.png" 
-                alt="Logo de la boutique" 
-                className="h-28 w-auto"
-              />
-            </div>
-          
-          <div className="flex-1 flex items-center justify-center">
-            <Container maxWidth="md" className="py-16">
-              <div className="backdrop-blur-xl bg-white/20 border border-white/30 rounded-3xl p-8 text-center shadow-2xl">
-                <Text size="2xl" weight="bold" className="mb-4 text-gray-800">
-                  Initialisation...
-                </Text>
-                <Text color="gray-700" className="mb-6">
-                  Connexion automatique en cours, veuillez patienter.
-                </Text>
-                {error && (
-                  <div className="mt-4 backdrop-blur-xl bg-red-500/20 border border-red-300/30 rounded-xl px-4 py-3">
-                    <Text color="red-700" size="sm">
-                      {error}
-                    </Text>
-                  </div>
-                )}
-                <div className="mt-6">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                </div>
-              </div>
-            </Container>
-          </div>
-        </div>
+        <WelcomeAnimation />
       </div>
     );
   }
