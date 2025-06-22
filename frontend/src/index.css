@@ -243,3 +243,102 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Splash Screen Animations - 1 Second Motion Design */
+@keyframes splashLogo {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) translateY(30px) rotate(-10deg);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.2) translateY(-10px) rotate(5deg);
+  }
+  60% {
+    transform: scale(0.95) translateY(2px) rotate(-2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0) rotate(0deg);
+  }
+}
+
+@keyframes splashTitle {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.8);
+  }
+  40% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.8);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes splashSubtitle {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  50% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes splashFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes splashPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.animate-splash-logo {
+  animation: splashLogo 2s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+}
+
+.animate-splash-title {
+  animation: splashTitle 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+}
+
+.animate-splash-subtitle {
+  animation: splashSubtitle 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+}
+
+.animate-splash-fade {
+  animation: splashFadeIn 0.3s ease-out forwards;
+}
+
+.animate-splash-pulse {
+  animation: splashPulse 1.5s ease-in-out infinite;
+}

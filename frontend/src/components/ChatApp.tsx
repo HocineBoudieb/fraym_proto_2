@@ -28,6 +28,7 @@ import { Sidebar } from './Sidebar';
 import { Welcome } from './Welcome';
 import { Cart } from './Cart';
 import { CartIcon } from './CartIcon';
+import { SplashScreen } from './SplashScreen';
 
 interface ChatAppProps {
   className?: string;
@@ -54,14 +55,8 @@ const normalizeProps = (props: any) => {
 // Fonction pour ajouter un produit au panier
 const addProductToCart = async (productId: string, productName: string, quantity: number, unitPrice: number, apiKey: string) => {
   try {
-    console.log('🛒 Ajout au panier:', { productId, productName, quantity, unitPrice });
-    
-    const response = await addToCart({
-      productId,
-      productName,
-      quantity,
-      unitPrice
-    }, apiKey);
+    console.log('🛒 Ajout au panier:', { productId, productName, quantity, unitPrice });    
+    const response = await addToCart(productId, productName, quantity, unitPrice, apiKey);
     
     console.log('🛒 Réponse ajout panier:', response);
     return response;
@@ -114,11 +109,18 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
   const [cart, setCart] = useState<CartType>({ items: [], totalItems: 0, totalPrice: 0 });
   const [showCart, setShowCart] = useState(false);
   const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [showSplashScreen, setShowSplashScreen] = useState(false);
+  const [splashProgress, setSplashProgress] = useState(0);
+  const [splashCurrentStep, setSplashCurrentStep] = useState(0);
 
   // Charger les données d'authentification au démarrage
   useEffect(() => {
     const loadAuthData = async () => {
       try {
+        // Étape 1: Authentification
+        setSplashCurrentStep(0);
+        setSplashProgress(10);
+        
         let authData = await getAuthData();
         
         // Vérifier si les données existent et ne sont pas expirées
@@ -127,6 +129,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
         if (!authData?.apiKey || isExpired) {
           // Enregistrement automatique
           console.log('Enregistrement automatique en cours...');
+          setSplashProgress(25);
           const autoAuthData = await autoRegister();
           
           authData = {
@@ -140,6 +143,11 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
         
         setCurrentApiKey(authData.apiKey);
         setIsConnected(true);
+        setSplashProgress(40);
+        
+        // Étape 2: Création/Restauration de session
+        setSplashCurrentStep(1);
+        setSplashProgress(50);
         
         // Vérifier s'il y a une session sauvegardée pour cette IP
         const savedSessionData = await getSessionDataByIP();
@@ -148,6 +156,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
         if (savedSessionData && savedSessionData.sessionId) {
           // Restaurer la session précédente
           setCurrentSessionId(savedSessionData.sessionId);
+          setSplashProgress(70);
           if (savedSessionData.lastComponents) {
             setRenderedComponents(savedSessionData.lastComponents);
             console.log('✅ Composants restaurés depuis la session sauvegardée');
@@ -158,17 +167,36 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
           await saveAuthData(authData);
         } else if (!authData.currentSessionId) {
           // Créer une nouvelle session si aucune session sauvegardée
-          await createNewSession(authData.apiKey);
+          await handleNewSession();
         } else {
           setCurrentSessionId(authData.currentSessionId);
+          setSplashProgress(70);
         }
+        
+        // Étape 3: Initialisation du chat
+        // Envoyer le message de bienvenue
+        
+        setSplashCurrentStep(2);
+        setSplashProgress(85);
+        const welcomeMessage = "Accueille moi, suggère moi trois produits, résume moi cette boutique";
+        await handleSendMessage(welcomeMessage);
+        // Finalisation
+        setSplashProgress(100);
+        
+        // Attendre un peu pour que l'utilisateur voie la progression complète
+        setTimeout(() => {
+          setShowSplashScreen(false);
+        }, 500);
         
       } catch (error) {
         console.error('Erreur lors du chargement des données d\'authentification:', error);
         setError('Erreur lors de l\'initialisation. Veuillez recharger la page.');
+        setShowSplashScreen(false);
       }
     };
 
+    // Afficher le splash screen au démarrage
+    setShowSplashScreen(true);
     loadAuthData();
   }, []);
   
@@ -206,7 +234,7 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
       console.log('🛒 Cart mis à jour dans le state');
     } catch (error) {
       console.error('🛒 Erreur lors de la récupération du cart:', error);
-      console.error('🛒 Stack trace:', error.stack);
+      console.error('🛒 Stack trace:', (error as Error).stack);
     }
   };
 
@@ -228,18 +256,54 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
       setError('Erreur lors de la création de session.');
     }
   };
+  
+  const createNewSessionWithProgress = async (apiKey: string) => {
+    try {
+      setSplashProgress(55);
+      const session = await createSession(apiKey);
+      setCurrentSessionId(session.id);
+      setSplashProgress(65);
+      
+      // Mettre à jour les données d'authentification avec la session
+      const authData = await getAuthData();
+      if (authData) {
+        authData.currentSessionId = session.id;
+        await saveAuthData(authData);
+      }
+      setSplashProgress(70);
+      
+    } catch (error) {
+      console.error('Erreur lors de la création de session:', error);
+      setError('Erreur lors de la création de session.');
+      throw error;
+    }
+  };
 
   // Fonction pour démarrer une nouvelle session
   const handleNewSession = async () => {
     if (!currentApiKey) return;
     
+    // Afficher le splash screen avec progression
+    setShowSplashScreen(true);
+    setSplashCurrentStep(0);
+    setSplashProgress(0);
     setIsLoading(true);
     setError(null);
     
     try {
+      // Étape 1: Authentification (déjà faite, mais on simule)
+      setSplashCurrentStep(0);
+      setSplashProgress(20);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Étape 2: Création de session
+      setSplashCurrentStep(1);
+      setSplashProgress(30);
+      
       // Effacer les données de session sauvegardées
       await clearCurrentSessionData();
       console.log('🗑️ Données de session précédentes effacées');
+      setSplashProgress(40);
       
       // Réinitialiser l'état de l'interface
       setRenderedComponents(null);
@@ -248,17 +312,36 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
       setIsNewContent(false);
       setInputMessage('');
       setSuggestion(null);
+      setSplashProgress(50);
       
       // Créer une nouvelle session
       await createNewSession(currentApiKey);
+      setSplashProgress(70);
+      
+      // Étape 3: Initialisation du chat
+      setSplashCurrentStep(2);
+      setSplashProgress(80);
+      
+      // Envoyer automatiquement le message de bienvenue pendant le splash screen
+      const welcomeMessage = "Accueille moi, suggère moi trois produits, résume moi cette boutique";
+      await handleSendMessage(welcomeMessage);
+      setSplashProgress(100);
+      
+      // Attendre un peu pour que l'utilisateur voie la progression complète
+      setTimeout(() => {
+        setShowSplashScreen(false);
+      }, 500);
       
     } catch (error) {
       console.error('Erreur lors de la création d\'une nouvelle session:', error);
       setError('Erreur lors de la création d\'une nouvelle session.');
+      setShowSplashScreen(false);
     } finally {
       setIsLoading(false);
     }
   };
+  
+
 
   // Cette section contenait auparavant la fonction handleConnect qui a été remplacée par l'authentification automatique
 
@@ -369,11 +452,20 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
         setPreviousComponents(null);
       }
       
+      // Hide splash screen when response is received
+      if (showSplashScreen) {
+        setShowSplashScreen(false);
+      }
+      
     } catch (error) {
       console.error('Erreur lors de l\'envoi du message:', error);
       setError('Erreur lors de l\'envoi du message.');
       setIsTransitioning(false);
       setPreviousComponents(null);
+      // Hide splash screen on error too
+      if (showSplashScreen) {
+        setShowSplashScreen(false);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -459,14 +551,18 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
                   ? 'animate-slideInUp'
                   : ''
               }`}>
-                <ComponentFactory 
-                   componentData={
-                     isTransitioning && previousComponents && isLoading 
-                       ? previousComponents 
-                       : renderedComponents
-                   }
-                   isNewContent={!isLoading && isNewContent}
-                 />
+                {(isTransitioning && previousComponents && isLoading 
+                   ? previousComponents 
+                   : renderedComponents) && (
+                  <ComponentFactory 
+                     componentData={
+                       isTransitioning && previousComponents && isLoading 
+                         ? previousComponents 
+                         : renderedComponents!
+                     }
+                     isNewContent={!isLoading && isNewContent}
+                   />
+                )}
               </div>
             </div>
           </div>
@@ -609,6 +705,14 @@ export const ChatApp: React.FC<ChatAppProps> = ({ className = '' }) => {
         <Cart
           cart={cart}
           onClose={() => setShowCart(false)}
+        />
+      )}
+      
+      {/* Splash Screen pour nouvelle session */}
+      {showSplashScreen && (
+        <SplashScreen 
+          currentStep={splashCurrentStep}
+          progress={splashProgress}
         />
       )}
     </div>
